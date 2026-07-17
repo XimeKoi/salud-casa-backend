@@ -26,12 +26,12 @@ import { GeocodeModule } from './geocode/geocode.module';
       envFilePath: ['.env', '.env.production'],
     }),
 
-    // ⭐ CONEXIÓN CON SESSION POOLER (IPv4)
+    // ⭐ CONEXIÓN CON SESSION POOLER (IPv4) - USUARIO CORRECTO
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'aws-1-us-east-2.pooler.supabase.com',
       port: 5432,
-      username: 'postgres',
+      username: 'postgres.kbtfnvdawanjwafezkrq',
       password: 'MiClave2026',
       database: 'postgres',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
