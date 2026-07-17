@@ -1,15 +1,23 @@
-FROM node:trixie-slim
+# Dockerfile para Railway (Producción)
+
+FROM node:18-alpine
 
 WORKDIR /app
 
-RUN npm install -g @nestjs/cli
-
+# Copiar archivos de dependencias
 COPY package*.json ./
 
+# Instalar dependencias
 RUN npm install
 
+# Copiar el resto del código
 COPY . .
 
+# Construir la aplicación (genera dist/)
+RUN npm run build
+
+# Exponer el puerto
 EXPOSE 3000
 
-CMD ["npm", "run", "start:dev"]
+# Iniciar en modo producción
+CMD ["node", "dist/main.js"]
