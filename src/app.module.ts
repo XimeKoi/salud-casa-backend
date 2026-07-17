@@ -26,13 +26,17 @@ import { GeocodeModule } from './geocode/geocode.module';
       envFilePath: ['.env', '.env.production'],
     }),
 
-    // ⭐ CONEXIÓN FORZADA CON DATABASE_URL
+    // ⭐ CONEXIÓN A POSTGRESQL CON VARIABLES DE ENTORNO
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL,
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      username: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'saludcasa',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
-      ssl: false,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       extra: {
         max: 20,
         connectionTimeoutMillis: 30000,
