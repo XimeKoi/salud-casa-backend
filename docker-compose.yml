@@ -1,0 +1,41 @@
+services:
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  salud-casa-por-casa-redis:
+    image: redis:7-alpine
+    container_name: salud-casa-por-casa-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # ─── Backend NestJS (1 réplica) ────────────────────────────────────────────
+  salud-casa-por-casa-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: salud-casa-por-casa-backend
+    restart: always
+    env_file:
+      - ./.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - salud-casa-por-casa-redis
+      - salud-casa-por-casa-db
+
+  # ─── Base de Datos Local (Solo para Desarrollo) ──────────────────────────────
+  salud-casa-por-casa-db:
+    image: postgres:16-alpine
+    container_name: salud-casa-por-casa-db
+    profiles: ["dev"]               # IMPORTANTE: Solo se ejecuta con el perfil "dev"
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT:-5432}:5432"     # Expone el puerto mapeado desde .env
+    volumes:
+      - ./salud-casa-por-casa-data:/var/lib/postgresql/data
+
+volumes:
+  salud-casa-por-casa-data:

@@ -1,0 +1,32 @@
+# render.yaml
+
+services:
+  - type: web
+    name: salud-casa-api
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/main.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: 5432
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_SSL
+        value: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AWS_REGION
+        value: us-east-1
+      - key: AWS_API_KEY
+        sync: false
