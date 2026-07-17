@@ -23,19 +23,14 @@ import { GeocodeModule } from './geocode/geocode.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '.env.production'],
     }),
 
-    // ⭐ CONEXIÓN CON SESSION POOLER (IPv4) - USUARIO CORRECTO
+    // ⭐ CONEXIÓN CON POSTGRESQL DE RAILWAY
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'aws-1-us-east-2.pooler.supabase.com',
-      port: 5432,
-      username: 'postgres.kbtfnvdawanjwafezkrq',
-      password: 'MiClave2026',
-      database: 'postgres',
+      url: process.env.DATABASE_URL,  // ⭐ USA LA URL DE RAILWAY
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false,
+      synchronize: true,  // ⭐ CREA LAS TABLAS AUTOMÁTICAMENTE
       ssl: false,
       extra: {
         max: 20,
