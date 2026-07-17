@@ -59,7 +59,8 @@ async function bootstrap() {
   logger.log(`🌍 Entorno: ${nodeEnv}`);
   logger.log(`📊 Base de datos: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
 
-  await app.listen(port);
+  // ⭐⭐⭐ LA CLAVE: ESCUCHAR EN 0.0.0.0 ⭐⭐⭐
+  await app.listen(port, '0.0.0.0');
 
   // ⭐ GEOCODIFICADO SOLO EN DESARROLLO
   if (nodeEnv !== 'production') {
