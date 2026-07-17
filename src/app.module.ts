@@ -28,9 +28,9 @@ import { GeocodeModule } from './geocode/geocode.module';
     // ⭐ CONEXIÓN CON POSTGRESQL DE RAILWAY
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL,  // ⭐ USA LA URL DE RAILWAY
+      url: process.env.DATABASE_URL,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,  // ⭐ CREA LAS TABLAS AUTOMÁTICAMENTE
+      synchronize: true,
       ssl: false,
       extra: {
         max: 20,
