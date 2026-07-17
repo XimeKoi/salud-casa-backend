@@ -26,13 +26,13 @@ import { GeocodeModule } from './geocode/geocode.module';
       envFilePath: ['.env', '.env.production'],
     }),
 
-    // ⭐ CONEXIÓN A POSTGRESQL USANDO DATABASE_URL
+    // ⭐ CONEXIÓN FORZADA CON DATABASE_URL
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
-      ssl: { rejectUnauthorized: false },
+      ssl: false,
       extra: {
         max: 20,
         connectionTimeoutMillis: 30000,
