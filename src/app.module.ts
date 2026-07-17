@@ -26,10 +26,10 @@ import { GeocodeModule } from './geocode/geocode.module';
       envFilePath: ['.env', '.env.production'],
     }),
 
-    // ⭐ CONEXIÓN DIRECTA A SUPABASE CON IP
+    // ⭐ CONEXIÓN CON SESSION POOLER (IPv4)
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: '3.131.201.192',  // ⭐ IP DIRECTA
+      host: 'aws-1-us-east-2.pooler.supabase.com',
       port: 5432,
       username: 'postgres',
       password: 'MiClave2026',
