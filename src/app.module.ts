@@ -26,17 +26,17 @@ import { GeocodeModule } from './geocode/geocode.module';
       envFilePath: ['.env', '.env.production'],
     }),
 
-    // ⭐ CONEXIÓN A POSTGRESQL CON VARIABLES DE ENTORNO
+    // ⭐ CONEXIÓN DIRECTA A SUPABASE CON IP
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_NAME || 'saludcasa',
+      host: '3.131.201.192',  // ⭐ IP DIRECTA
+      port: 5432,
+      username: 'postgres',
+      password: 'MiClave2026',
+      database: 'postgres',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      ssl: false,
       extra: {
         max: 20,
         connectionTimeoutMillis: 30000,
