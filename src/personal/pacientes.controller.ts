@@ -204,4 +204,53 @@ export class PacientesController {
     async corregirCoordenadasDistrito() {
         return this.pacientesService.corregirCoordenadasDistrito();
     }
+    // src/personal/pacientes.controller.ts
+
+    // ⭐ ==========================================
+    // ⭐ NIVELES DE RIESGO - ENDPOINTS
+    // ⭐ ==========================================
+
+    @Get('niveles-riesgo')
+    async obtenerNivelesRiesgo() {
+        console.log('📊 [Controller] Obteniendo todos los niveles de riesgo');
+        return this.pacientesService.obtenerNivelesRiesgo();
+    }
+
+    @Get(':id/nivel-riesgo')
+    async obtenerNivelRiesgo(@Param('id') id: string) {
+        console.log(`📊 [Controller] Obteniendo nivel de riesgo para paciente ${id}`);
+        const idNumber = parseInt(id, 10);
+        if (isNaN(idNumber) || idNumber <= 0) {
+            throw new HttpException('ID inválido', HttpStatus.BAD_REQUEST);
+        }
+        const nivel = await this.pacientesService.obtenerNivelRiesgo(idNumber);
+        return { pacienteId: idNumber, nivelRiesgo: nivel };
+    }
+
+    @Patch(':id/nivel-riesgo')
+    async actualizarNivelRiesgo(
+        @Param('id') id: string,
+        @Body() body: { nivelRiesgo: string | null; usuarioId?: number }
+    ) {
+        console.log(`📊 [Controller] Actualizando nivel de riesgo para paciente ${id}:`, body);
+        const idNumber = parseInt(id, 10);
+        if (isNaN(idNumber) || idNumber <= 0) {
+            throw new HttpException('ID inválido', HttpStatus.BAD_REQUEST);
+        }
+        return this.pacientesService.actualizarNivelRiesgo(
+            idNumber,
+            body.nivelRiesgo,
+            body.usuarioId || 1
+        );
+    }
+
+    @Get('enfermera/:idEnfermera/con-riesgo')
+    async obtenerPacientesConNivelRiesgo(@Param('idEnfermera') idEnfermera: string) {
+        console.log(`📊 [Controller] Obteniendo pacientes con nivel de riesgo para enfermera ${idEnfermera}`);
+        const idNumber = parseInt(idEnfermera, 10);
+        if (isNaN(idNumber) || idNumber <= 0) {
+            return [];
+        }
+        return this.pacientesService.obtenerPacientesConNivelRiesgo(idNumber);
+    }
 }

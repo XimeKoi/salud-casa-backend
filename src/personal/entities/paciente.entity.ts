@@ -1,11 +1,14 @@
 // src/personal/entities/paciente.entity.ts
 
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import { PacienteNivelRiesgo } from './paciente-nivel-riesgo.entity';
 
 @Entity('pacientes')
 export class Paciente {
     @PrimaryGeneratedColumn()
     id: number;
+
+    // ... (tus columnas existentes)
 
     @Column({ nullable: true })
     numero: number;
@@ -74,6 +77,10 @@ export class Paciente {
     // ⭐ FECHA FINADO
     @Column({ name: 'fecha_finado', type: 'date', nullable: true })
     fechaFinado: Date | null;
+
+    // ⭐ RELACIÓN CON NIVEL DE RIESGO (NO SE GUARDA EN LA MISMA TABLA)
+    // Este campo se llenará desde la tabla pacientes_niveles_riesgo
+    nivelRiesgo?: string | null;
 
     // ⭐ MÉTODOS DE UTILIDAD
     tieneDiscapacidad(): boolean {

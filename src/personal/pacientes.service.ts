@@ -40,14 +40,12 @@ export class PacientesService {
             where: { idEnfermera }
         });
 
-        // ⭐ LOG PARA DEPURACIÓN
         const conDiscapacidad = pacientes.filter(p => p.tieneDiscapacidad());
         const finados = pacientes.filter(p => p.esFinado());
         console.log(`📊 Pacientes totales: ${pacientes.length}`);
         console.log(`🎨 Con discapacidad: ${conDiscapacidad.length}`);
         console.log(`💀 Finados: ${finados.length}`);
 
-        // ⭐ LOG PARA VER FINADOS
         if (finados.length > 0) {
             console.log('💀 Lista de finados:');
             finados.forEach(p => {
@@ -167,12 +165,10 @@ export class PacientesService {
         const estadoAnterior = paciente.estatus;
         paciente.estatus = estatus;
 
-        // ⭐ SI ES FINADO, AGREGAR FECHA
         if (estatus.toUpperCase() === 'FINADO') {
             paciente.fechaFinado = new Date();
             console.log(`📝 fechaFinado establecida a: ${paciente.fechaFinado} para paciente ${paciente.nombre}`);
         } else {
-            // ⭐ SI NO ES FINADO, LIMPIAR FECHA
             paciente.fechaFinado = null;
             console.log(`📝 fechaFinado eliminada para paciente ${paciente.nombre}`);
         }
@@ -508,7 +504,7 @@ export class PacientesService {
         } catch (error: any) {
             console.error('❌ Error en geocodePaciente:', error);
             return {
-                message: `❌ Error: ${error.message}`,
+                message: `❌ Error: ${error.message || 'Error desconocido'}`,
                 paciente: null
             };
         }
@@ -563,7 +559,7 @@ export class PacientesService {
                     resultados.push({
                         id: paciente.id,
                         nombre: paciente.nombre || 'Desconocido',
-                        status: `❌ Error: ${error.message}`
+                        status: `❌ Error: ${error.message || 'Error desconocido'}`
                     });
                 }
             }
@@ -576,7 +572,7 @@ export class PacientesService {
         } catch (error: any) {
             console.error('❌ Error en geocodeAllPacientes:', error);
             return {
-                error: error.message
+                error: error.message || 'Error desconocido'
             };
         }
     }
@@ -703,7 +699,7 @@ export class PacientesService {
                     resultados.push({
                         id: paciente.id,
                         nombre: paciente.nombre || 'Desconocido',
-                        status: `❌ Error: ${error.message}`
+                        status: `❌ Error: ${error.message || 'Error desconocido'}`
                     });
                 }
             }
@@ -716,7 +712,7 @@ export class PacientesService {
         } catch (error: any) {
             console.error('❌ Error corrigiendo coordenadas:', error);
             return {
-                error: error.message
+                error: error.message || 'Error desconocido'
             };
         }
     }
@@ -732,5 +728,184 @@ export class PacientesService {
             .limit(10)
             .getMany();
         return pacientes;
+    }
+
+    // ⭐ ============================================
+    // ⭐ NIVELES DE RIESGO
+    // ⭐ ============================================
+
+    /**
+     * Obtener todos los niveles de riesgo de pacientes
+     */
+    async obtenerNivelesRiesgo(): Promise<any[]> {
+        try {
+            const result = await this.pacientesRepository
+                .createQueryBuilder('p')
+                .select([
+                    'p.id as "pacienteId"',
+                    'p.nombre as "pacienteNombre"',
+                    'nr.nivel_riesgo as "nivelRiesgo"'
+                ])
+                .leftJoin('pacientes_niveles_riesgo', 'nr', 'nr.paciente_id = p.id')
+                .where('p.id_enfermera IS NOT NULL')
+                .getRawMany();
+
+            console.log(`📊 ${result.length} niveles de riesgo obtenidos`);
+            return result;
+        } catch (error) {
+            console.error('❌ Error obteniendo niveles de riesgo:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener nivel de riesgo de un paciente específico
+     */
+    async obtenerNivelRiesgo(pacienteId: number): Promise<string | null> {
+        try {
+            const result = await this.pacientesRepository
+                .createQueryBuilder()
+                .select('nivel_riesgo', 'nivelRiesgo')
+                .from('pacientes_niveles_riesgo', 'nr')
+                .where('nr.paciente_id = :pacienteId', { pacienteId })
+                .getRawOne();
+
+            return result?.nivelRiesgo || null;
+        } catch (error) {
+            console.error(`❌ Error obteniendo nivel de riesgo para paciente ${pacienteId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Actualizar nivel de riesgo de un paciente
+     */
+    async actualizarNivelRiesgo(
+        pacienteId: number,
+        nivelRiesgo: string | null,
+        usuarioId: number = 1
+    ): Promise<{ success: boolean; message: string; nivelRiesgo: string | null }> {
+        try {
+            const paciente = await this.findOne(pacienteId);
+            if (!paciente) {
+                return {
+                    success: false,
+                    message: `Paciente con ID ${pacienteId} no encontrado`,
+                    nivelRiesgo: null
+                };
+            }
+
+            if (!nivelRiesgo) {
+                await this.pacientesRepository
+                    .createQueryBuilder()
+                    .delete()
+                    .from('pacientes_niveles_riesgo')
+                    .where('paciente_id = :pacienteId', { pacienteId })
+                    .execute();
+
+                console.log(`🗑️ Nivel de riesgo eliminado para paciente ${pacienteId}`);
+                return {
+                    success: true,
+                    message: 'Nivel de riesgo eliminado correctamente',
+                    nivelRiesgo: null
+                };
+            }
+
+            const nivelesValidos = ['g1', 'g2', 'g3', 'g4'];
+            if (!nivelesValidos.includes(nivelRiesgo)) {
+                return {
+                    success: false,
+                    message: `Nivel de riesgo inválido: ${nivelRiesgo}. Debe ser g1, g2, g3 o g4`,
+                    nivelRiesgo: null
+                };
+            }
+
+            await this.pacientesRepository
+                .createQueryBuilder()
+                .insert()
+                .into('pacientes_niveles_riesgo')
+                .values({
+                    pacienteId: pacienteId,
+                    nivelRiesgo: nivelRiesgo,
+                    creadoPor: usuarioId,
+                    actualizadoPor: usuarioId
+                })
+                .orUpdate(
+                    ['nivel_riesgo', 'actualizado_por', 'actualizado_en'],
+                    ['paciente_id']
+                )
+                .execute();
+
+            console.log(`✅ Nivel de riesgo actualizado para paciente ${pacienteId}: ${nivelRiesgo}`);
+
+            await this.notificacionesService.enviarNotificacion(usuarioId, {
+                titulo: `📊 Nivel de Riesgo Actualizado - ${paciente.nombre}`,
+                mensaje: `El paciente ${paciente.nombre} ahora tiene nivel de riesgo ${this.getLabelNivelRiesgo(nivelRiesgo)}`,
+                tipo: 'paciente',
+                prioridad: 'media',
+                metadata: {
+                    pacienteId: paciente.id,
+                    nivelRiesgo: nivelRiesgo
+                },
+                url: `/pacientes/${paciente.id}`,
+            });
+
+            return {
+                success: true,
+                message: 'Nivel de riesgo actualizado correctamente',
+                nivelRiesgo: nivelRiesgo
+            };
+
+        } catch (error) {
+            console.error(`❌ Error actualizando nivel de riesgo para paciente ${pacienteId}:`, error);
+            // ⭐ CORREGIDO: usar error instanceof Error
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            return {
+                success: false,
+                message: `Error: ${errorMessage}`,
+                nivelRiesgo: null
+            };
+        }
+    }
+
+    /**
+     * Obtener label del nivel de riesgo
+     */
+    private getLabelNivelRiesgo(nivel: string): string {
+        const labels = {
+            'g1': '🟢 Grupo 1 (Bajo)',
+            'g2': '🟡 Grupo 2 (Medio)',
+            'g3': '🟠 Grupo 3 (Alto)',
+            'g4': '🔴 Grupo 4 (Crítico)'
+        };
+        return labels[nivel] || nivel;
+    }
+
+    /**
+     * Obtener todos los pacientes con su nivel de riesgo
+     */
+    async obtenerPacientesConNivelRiesgo(idEnfermera: number): Promise<any[]> {
+        try {
+            const pacientes = await this.findByIdEnfermera(idEnfermera);
+
+            const niveles = await this.pacientesRepository
+                .createQueryBuilder()
+                .select(['paciente_id', 'nivel_riesgo'])
+                .from('pacientes_niveles_riesgo', 'nr')
+                .getRawMany();
+
+            const nivelesMap = new Map();
+            niveles.forEach(n => {
+                nivelesMap.set(n.paciente_id, n.nivel_riesgo);
+            });
+
+            return pacientes.map(p => ({
+                ...p,
+                nivelRiesgo: nivelesMap.get(p.id) || null
+            }));
+        } catch (error) {
+            console.error('❌ Error obteniendo pacientes con nivel de riesgo:', error);
+            return [];
+        }
     }
 }
