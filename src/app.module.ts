@@ -38,7 +38,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
       database: process.env.DB_NAME || 'saludcasa',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false, // ⭐ DESACTIVADO
+      synchronize: false,
       extra: {
         max: 20,
         connectionTimeoutMillis: 30000,

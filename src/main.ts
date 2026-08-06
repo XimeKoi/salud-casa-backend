@@ -12,37 +12,26 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   const nodeEnv = process.env.NODE_ENV || 'development';
 
-  // ⭐ CORS CONFIGURADO PARA PRODUCCIÓN
-  const allowedOrigins = [
-    'http://localhost:4200',
-    'http://localhost:3000',
-    'https://salud-casa-por-casa.netlify.app',
-    'https://*.netlify.app',
-    /\.netlify\.app$/,
-  ];
-
+  // ⭐ CORS CONFIGURADO PARA NETLIFY (SIN CAMBIAR CADA VEZ)
   app.enableCors({
     origin: (origin, callback) => {
+      // Permitir peticiones sin origen (como Postman)
       if (!origin) {
         callback(null, true);
         return;
       }
 
-      const isAllowed = allowedOrigins.some(allowed => {
-        if (typeof allowed === 'string') {
-          if (allowed.includes('*')) {
-            const regex = new RegExp('^' + allowed.replace(/\*/g, '.*') + '$');
-            return regex.test(origin);
-          }
-          return origin === allowed;
-        }
-        if (allowed instanceof RegExp) {
-          return allowed.test(origin);
-        }
-        return false;
-      });
+      // ⭐ PERMITIR CUALQUIER DOMINIO DE NETLIFY
+      const isNetlify = /\.netlify\.app$/.test(origin) ||
+        /\.netlify\.com$/.test(origin) ||
+        origin.includes('netlify.app');
 
-      if (isAllowed || nodeEnv === 'development') {
+      // ⭐ PERMITIR LOCALHOST PARA DESARROLLO
+      const isLocal = origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.includes('192.168.');
+
+      if (isNetlify || isLocal || nodeEnv === 'development') {
         callback(null, true);
       } else {
         logger.warn(`CORS bloqueado para: ${origin}`);
