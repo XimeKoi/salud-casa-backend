@@ -19,7 +19,6 @@ export class TwilioSMSService {
             try {
                 this.client = twilio(accountSid, authToken);
                 this.logger.log('✅ Twilio SMS Service inicializado');
-                // ⭐ USAR TWILIO_WHATSAPP_NUMBER O TWILIO_PHONE_NUMBER
                 this.logger.log(`📱 Número de envío: ${process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER}`);
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
@@ -39,8 +38,8 @@ export class TwilioSMSService {
 
         try {
             const numeroFormateado = this.formatearNumero(telefono);
-            // ⭐ USAR TWILIO_WHATSAPP_NUMBER O TWILIO_PHONE_NUMBER
-            const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '+18777804236';
+            // ⭐⭐⭐ NÚMERO CORRECTO ⭐⭐⭐
+            const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '+14754264573';
 
             this.logger.log(`📤 Enviando SMS:`);
             this.logger.log(`   FROM: ${fromNumber}`);
