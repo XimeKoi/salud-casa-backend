@@ -19,7 +19,8 @@ export class TwilioSMSService {
             try {
                 this.client = twilio(accountSid, authToken);
                 this.logger.log('✅ Twilio SMS Service inicializado');
-                this.logger.log(`📱 Número de envío: ${process.env.TWILIO_PHONE_NUMBER}`);
+                // ⭐ USAR TWILIO_WHATSAPP_NUMBER O TWILIO_PHONE_NUMBER
+                this.logger.log(`📱 Número de envío: ${process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER}`);
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
                 this.logger.error(`❌ Error: ${errorMessage}`);
@@ -38,7 +39,8 @@ export class TwilioSMSService {
 
         try {
             const numeroFormateado = this.formatearNumero(telefono);
-            const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+            // ⭐ USAR TWILIO_WHATSAPP_NUMBER O TWILIO_PHONE_NUMBER
+            const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '+18777804236';
 
             this.logger.log(`📤 Enviando SMS:`);
             this.logger.log(`   FROM: ${fromNumber}`);
@@ -94,7 +96,7 @@ export class TwilioSMSService {
 
     private generarMensajeConfirmacion(nombre: string, fecha: string, hora: string, direccion: string): string {
         return `
-🩺 CONFIRMACIÓN DE VISITA
+CONFIRMACIÓN DE VISITA
 
 Estimado(a) ${nombre},
 
@@ -111,7 +113,7 @@ Salud Casa por Casa
 
     private generarMensajeRecordatorio(nombre: string, fecha: string, hora: string, direccion: string): string {
         return `
-🩺 RECORDATORIO DE VISITA
+RECORDATORIO DE VISITA
 
 Estimado(a) ${nombre},
 
