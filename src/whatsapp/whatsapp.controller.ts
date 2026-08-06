@@ -1,11 +1,11 @@
 // src/whatsapp/whatsapp.controller.ts
 
 import { Controller, Post, Body } from '@nestjs/common';
-import { WhatsAppService } from '../services/whatsapp.service';
+import { TwilioWhatsAppService } from '../services/twilio-whatsapp.service';
 
 @Controller('whatsapp')
 export class WhatsAppController {
-    constructor(private whatsappService: WhatsAppService) { }
+    constructor(private whatsappService: TwilioWhatsAppService) { }
 
     @Post('confirmacion')
     async enviarConfirmacion(@Body() data: {
