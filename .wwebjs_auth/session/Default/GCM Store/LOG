@@ -1,2 +1,3 @@
-2026/08/06-12:05:04.987 357c Creating DB E:\SaludCasaPorCasa-main\SaludCasaPorCasa-main\.wwebjs_auth\session\Default\GCM Store since it was missing.
-2026/08/06-12:05:04.994 357c Reusing MANIFEST E:\SaludCasaPorCasa-main\SaludCasaPorCasa-main\.wwebjs_auth\session\Default\GCM Store/MANIFEST-000001
+2026/08/06-12:27:44.948 bb8 Reusing MANIFEST E:\SaludCasaPorCasa-main\SaludCasaPorCasa-main\.wwebjs_auth\session\Default\GCM Store/MANIFEST-000001
+2026/08/06-12:27:44.948 bb8 Recovering log #3
+2026/08/06-12:27:44.949 bb8 Reusing old log E:\SaludCasaPorCasa-main\SaludCasaPorCasa-main\.wwebjs_auth\session\Default\GCM Store/000003.log 

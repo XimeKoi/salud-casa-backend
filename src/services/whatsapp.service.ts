@@ -21,11 +21,9 @@ export class WhatsAppService implements OnModuleInit {
             }
         });
 
-        // ⭐ QR CODE - Escanea con tu WhatsApp
         this.client.on('qr', (qr) => {
             this.logger.log('📱 ESCANEA ESTE QR CON TU WHATSAPP:');
             qrcode.generate(qr, { small: true });
-            console.log('\n📱 También puedes abrir: https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qr));
         });
 
         this.client.on('ready', () => {
@@ -47,14 +45,9 @@ export class WhatsAppService implements OnModuleInit {
         await this.client.initialize();
     }
 
-    /**
-     * Enviar mensaje por WhatsApp
-     */
     async enviarMensaje(telefono: string, mensaje: string): Promise<boolean> {
         if (!this.isReady) {
             this.logger.warn('⚠️ WhatsApp no está listo');
-
-            // ⭐ MODO PRUEBA: Simular envío
             this.logger.log(`📱 [SIMULACIÓN] Mensaje a ${telefono}: ${mensaje.substring(0, 50)}...`);
             return true;
         }
@@ -67,14 +60,13 @@ export class WhatsAppService implements OnModuleInit {
             this.logger.log(`✅ Mensaje enviado a ${telefono}`);
             return true;
         } catch (error) {
-            this.logger.error(`❌ Error: ${error.message}`);
+            // ⭐ CORREGIDO - Manejo seguro de error
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            this.logger.error(`❌ Error enviando mensaje: ${errorMessage}`);
             return false;
         }
     }
 
-    /**
-     * Enviar confirmación de visita
-     */
     async enviarConfirmacionVisita(
         telefono: string,
         nombrePaciente: string,
@@ -86,9 +78,6 @@ export class WhatsAppService implements OnModuleInit {
         return this.enviarMensaje(telefono, mensaje);
     }
 
-    /**
-     * Enviar recordatorio de visita
-     */
     async enviarRecordatorioVisita(
         telefono: string,
         nombrePaciente: string,
