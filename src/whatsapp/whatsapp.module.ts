@@ -2,11 +2,11 @@
 
 import { Module } from '@nestjs/common';
 import { WhatsAppController } from './whatsapp.controller';
-import { TwilioWhatsAppService } from '../services/twilio-whatsapp.service';
+import { TwilioSMSService } from '../services/twilio-sms.service';
 
 @Module({
     controllers: [WhatsAppController],
-    providers: [TwilioWhatsAppService],
-    exports: [TwilioWhatsAppService],
+    providers: [TwilioSMSService],
+    exports: [TwilioSMSService],
 })
 export class WhatsAppModule { }

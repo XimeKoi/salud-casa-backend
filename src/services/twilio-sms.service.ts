@@ -1,11 +1,11 @@
-// src/services/twilio-whatsapp.service.ts
+// src/services/twilio-sms.service.ts
 
 import { Injectable, Logger } from '@nestjs/common';
-import twilio from 'twilio'; // ⭐ CAMBIAR: import por defecto
+import twilio from 'twilio';
 
 @Injectable()
-export class TwilioWhatsAppService {
-    private readonly logger = new Logger(TwilioWhatsAppService.name);
+export class TwilioSMSService {
+    private readonly logger = new Logger(TwilioSMSService.name);
     private client: twilio.Twilio;
     private enabled: boolean;
 
@@ -13,58 +13,48 @@ export class TwilioWhatsAppService {
         const accountSid = process.env.TWILIO_ACCOUNT_SID;
         const authToken = process.env.TWILIO_AUTH_TOKEN;
 
-        // ⭐ VERIFICACIÓN MEJORADA
-        this.enabled = !!(accountSid && authToken &&
-            accountSid !== 'ACxxxxxxxx' &&
-            accountSid.startsWith('AC'));
+        this.enabled = !!(accountSid && authToken && accountSid.startsWith('AC'));
 
         if (this.enabled) {
             try {
                 this.client = twilio(accountSid, authToken);
-                this.logger.log('✅ Twilio WhatsApp Service inicializado');
-                this.logger.log(`📱 Número de envío: ${process.env.TWILIO_WHATSAPP_NUMBER || 'No configurado'}`);
+                this.logger.log('✅ Twilio SMS Service inicializado');
+                this.logger.log(`📱 Número de envío: ${process.env.TWILIO_PHONE_NUMBER}`);
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-                this.logger.error(`❌ Error inicializando Twilio: ${errorMessage}`);
+                this.logger.error(`❌ Error: ${errorMessage}`);
                 this.enabled = false;
             }
         } else {
             this.logger.warn('⚠️ Twilio no configurado - modo simulación');
-            this.logger.warn('📌 TWILIO_ACCOUNT_SID debe comenzar con "AC"');
-            this.logger.warn('📌 TWILIO_AUTH_TOKEN no debe estar vacío');
         }
     }
 
-    async enviarMensaje(telefono: string, mensaje: string): Promise<boolean> {
+    async enviarSMS(telefono: string, mensaje: string): Promise<boolean> {
         if (!this.enabled || !this.client) {
-            this.logger.log(`📱 [SIMULACIÓN] Mensaje a ${telefono}: ${mensaje.substring(0, 50)}...`);
+            this.logger.log(`📱 [SIMULACIÓN] SMS a ${telefono}: ${mensaje.substring(0, 50)}...`);
             return true;
         }
 
         try {
             const numeroFormateado = this.formatearNumero(telefono);
-            const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || '+14155238886';
+            const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
-            this.logger.log(`📤 Enviando WhatsApp a ${numeroFormateado} desde ${fromNumber}`);
+            this.logger.log(`📤 Enviando SMS:`);
+            this.logger.log(`   FROM: ${fromNumber}`);
+            this.logger.log(`   TO: ${numeroFormateado}`);
 
             const message = await this.client.messages.create({
                 body: mensaje,
-                from: `whatsapp:${fromNumber}`,
-                to: `whatsapp:${numeroFormateado}`
+                from: fromNumber,
+                to: numeroFormateado
             });
 
-            this.logger.log(`✅ WhatsApp enviado a ${telefono}: ${message.sid}`);
+            this.logger.log(`✅ SMS enviado: ${message.sid}`);
             return true;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            this.logger.error(`❌ Error enviando WhatsApp: ${errorMessage}`);
-
-            // ⭐ Si el error es de autenticación, deshabilitar Twilio
-            if (errorMessage.includes('authenticate') || errorMessage.includes('Auth')) {
-                this.logger.warn('⚠️ Error de autenticación - deshabilitando Twilio');
-                this.enabled = false;
-            }
-
+            this.logger.error(`❌ Error enviando SMS: ${errorMessage}`);
             return false;
         }
     }
@@ -77,7 +67,7 @@ export class TwilioWhatsAppService {
         direccion: string
     ): Promise<boolean> {
         const mensaje = this.generarMensajeConfirmacion(nombrePaciente, fecha, hora, direccion);
-        return this.enviarMensaje(telefono, mensaje);
+        return this.enviarSMS(telefono, mensaje);
     }
 
     async enviarRecordatorioVisita(
@@ -88,18 +78,18 @@ export class TwilioWhatsAppService {
         direccion: string
     ): Promise<boolean> {
         const mensaje = this.generarMensajeRecordatorio(nombrePaciente, fecha, hora, direccion);
-        return this.enviarMensaje(telefono, mensaje);
+        return this.enviarSMS(telefono, mensaje);
     }
 
     private formatearNumero(telefono: string): string {
         let limpio = telefono.replace(/\D/g, '');
         if (limpio.length === 10) {
-            return `52${limpio}`;
+            return `+52${limpio}`;
         }
         if (limpio.length === 11 && limpio.startsWith('1')) {
-            return `52${limpio.substring(1)}`;
+            return `+52${limpio.substring(1)}`;
         }
-        return limpio;
+        return `+${limpio}`;
     }
 
     private generarMensajeConfirmacion(nombre: string, fecha: string, hora: string, direccion: string): string {

@@ -1,11 +1,11 @@
 // src/whatsapp/whatsapp.controller.ts
 
 import { Controller, Post, Body } from '@nestjs/common';
-import { TwilioWhatsAppService } from '../services/twilio-whatsapp.service';
+import { TwilioSMSService } from '../services/twilio-sms.service';
 
 @Controller('whatsapp')
 export class WhatsAppController {
-    constructor(private whatsappService: TwilioWhatsAppService) { }
+    constructor(private smsService: TwilioSMSService) { }
 
     @Post('confirmacion')
     async enviarConfirmacion(@Body() data: {
@@ -15,7 +15,7 @@ export class WhatsAppController {
         hora: string;
         direccion: string;
     }) {
-        const enviado = await this.whatsappService.enviarConfirmacionVisita(
+        const enviado = await this.smsService.enviarConfirmacionVisita(
             data.telefono,
             data.nombrePaciente,
             data.fecha,
@@ -25,7 +25,7 @@ export class WhatsAppController {
 
         return {
             success: enviado,
-            message: enviado ? 'Confirmación enviada' : 'Error al enviar'
+            message: enviado ? 'Confirmación enviada por SMS' : 'Error al enviar'
         };
     }
 
@@ -37,7 +37,7 @@ export class WhatsAppController {
         hora: string;
         direccion: string;
     }) {
-        const enviado = await this.whatsappService.enviarRecordatorioVisita(
+        const enviado = await this.smsService.enviarRecordatorioVisita(
             data.telefono,
             data.nombrePaciente,
             data.fecha,
@@ -47,7 +47,7 @@ export class WhatsAppController {
 
         return {
             success: enviado,
-            message: enviado ? 'Recordatorio enviado' : 'Error al enviar'
+            message: enviado ? 'Recordatorio enviado por SMS' : 'Error al enviar'
         };
     }
 }
