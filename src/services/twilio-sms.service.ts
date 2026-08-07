@@ -9,6 +9,11 @@ export class TwilioSMSService {
     private client: twilio.Twilio;
     private enabled: boolean;
 
+    // ⭐ CONFIGURACIÓN
+    private readonly usarWhatsApp: boolean = true;
+    private readonly whatsappNumber: string = 'whatsapp:+14155238886';
+    private readonly sandboxCode: string = 'join cage-further'; // ⭐ ACTUALIZADO
+
     constructor() {
         const accountSid = process.env.TWILIO_ACCOUNT_SID;
         const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -18,44 +23,69 @@ export class TwilioSMSService {
         if (this.enabled) {
             try {
                 this.client = twilio(accountSid, authToken);
-                this.logger.log(' Twilio SMS Service inicializado');
-                this.logger.log(` Número de envío: ${process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER}`);
+                this.logger.log('✅ Twilio Service inicializado');
+                this.logger.log(`📱 Modo: ${this.usarWhatsApp ? 'WHATSAPP SANDBOX' : 'SMS'}`);
+                if (this.usarWhatsApp) {
+                    this.logger.log(`📱 WhatsApp Sandbox: ${this.whatsappNumber}`);
+                    this.logger.log(`📱 Código de activación: "${this.sandboxCode}"`);
+                } else {
+                    this.logger.log(`📱 Número de envío: ${process.env.TWILIO_PHONE_NUMBER || '+524931720063'}`);
+                }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-                this.logger.error(` Error: ${errorMessage}`);
+                this.logger.error(`❌ Error: ${errorMessage}`);
                 this.enabled = false;
             }
         } else {
-            this.logger.warn(' Twilio no configurado - modo simulación');
+            this.logger.warn('⚠️ Twilio no configurado - modo simulación');
         }
     }
 
     async enviarSMS(telefono: string, mensaje: string): Promise<boolean> {
         if (!this.enabled || !this.client) {
-            this.logger.log(`📱 [SIMULACIÓN] SMS a ${telefono}: ${mensaje.substring(0, 50)}...`);
+            this.logger.log(`📱 [SIMULACIÓN] Mensaje a ${telefono}: ${mensaje.substring(0, 50)}...`);
             return true;
         }
 
         try {
             const numeroFormateado = this.formatearNumero(telefono);
-            // ⭐⭐⭐ NÚMERO CORRECTO ⭐⭐⭐
-            const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '+14754264573';
 
-            this.logger.log(`📤 Enviando SMS:`);
-            this.logger.log(`   FROM: ${fromNumber}`);
-            this.logger.log(`   TO: ${numeroFormateado}`);
+            if (this.usarWhatsApp) {
+                const fromNumber = this.whatsappNumber;
+                const toNumber = `whatsapp:${numeroFormateado}`;
 
-            const message = await this.client.messages.create({
-                body: mensaje,
-                from: fromNumber,
-                to: numeroFormateado
-            });
+                this.logger.log(`📤 Enviando WhatsApp (Sandbox):`);
+                this.logger.log(`   FROM: ${fromNumber}`);
+                this.logger.log(`   TO: ${toNumber}`);
+                this.logger.log(`   📌 El paciente debe enviar "${this.sandboxCode}" a ${fromNumber} UNA SOLA VEZ`);
 
-            this.logger.log(`✅ SMS enviado: ${message.sid}`);
-            return true;
+                const message = await this.client.messages.create({
+                    body: mensaje,
+                    from: fromNumber,
+                    to: toNumber
+                });
+
+                this.logger.log(`✅ WhatsApp enviado: ${message.sid}`);
+                return true;
+            } else {
+                const fromNumber = process.env.TWILIO_PHONE_NUMBER || '+524931720063';
+
+                this.logger.log(`📤 Enviando SMS:`);
+                this.logger.log(`   FROM: ${fromNumber}`);
+                this.logger.log(`   TO: ${numeroFormateado}`);
+
+                const message = await this.client.messages.create({
+                    body: mensaje,
+                    from: fromNumber,
+                    to: numeroFormateado
+                });
+
+                this.logger.log(`✅ SMS enviado: ${message.sid}`);
+                return true;
+            }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            this.logger.error(`❌ Error enviando SMS: ${errorMessage}`);
+            this.logger.error(`❌ Error enviando mensaje: ${errorMessage}`);
             return false;
         }
     }
