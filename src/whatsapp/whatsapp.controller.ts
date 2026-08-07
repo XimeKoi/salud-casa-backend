@@ -15,6 +15,13 @@ export class WhatsAppController {
         hora: string;
         direccion: string;
     }) {
+        console.log('📥 [WhatsAppController] Recibida petición de confirmación:');
+        console.log('  📱 Teléfono:', data.telefono);
+        console.log('  👤 Paciente:', data.nombrePaciente);
+        console.log('  📅 Fecha:', data.fecha);
+        console.log('  ⏰ Hora:', data.hora);
+        console.log('  📍 Dirección:', data.direccion);
+
         const enviado = await this.smsService.enviarConfirmacionVisita(
             data.telefono,
             data.nombrePaciente,
@@ -22,6 +29,8 @@ export class WhatsAppController {
             data.hora,
             data.direccion
         );
+
+        console.log('📤 [WhatsAppController] Resultado:', enviado ? '✅ Enviado' : '❌ Error');
 
         return {
             success: enviado,
@@ -37,6 +46,10 @@ export class WhatsAppController {
         hora: string;
         direccion: string;
     }) {
+        console.log('📥 [WhatsAppController] Recibida petición de recordatorio:');
+        console.log('  📱 Teléfono:', data.telefono);
+        console.log('  👤 Paciente:', data.nombrePaciente);
+
         const enviado = await this.smsService.enviarRecordatorioVisita(
             data.telefono,
             data.nombrePaciente,
