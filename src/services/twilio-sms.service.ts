@@ -18,15 +18,15 @@ export class TwilioSMSService {
         if (this.enabled) {
             try {
                 this.client = twilio(accountSid, authToken);
-                this.logger.log('✅ Twilio SMS Service inicializado');
-                this.logger.log(`📱 Número de envío: ${process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER}`);
+                this.logger.log(' Twilio SMS Service inicializado');
+                this.logger.log(` Número de envío: ${process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER}`);
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-                this.logger.error(`❌ Error: ${errorMessage}`);
+                this.logger.error(` Error: ${errorMessage}`);
                 this.enabled = false;
             }
         } else {
-            this.logger.warn('⚠️ Twilio no configurado - modo simulación');
+            this.logger.warn(' Twilio no configurado - modo simulación');
         }
     }
 
