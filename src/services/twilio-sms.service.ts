@@ -9,10 +9,10 @@ export class TwilioSMSService {
     private client: twilio.Twilio;
     private enabled: boolean;
 
-    // ⭐ CONFIGURACIÓN
-    private readonly usarWhatsApp: boolean = true;
+    // ⭐ CONFIGURACIÓN - CAMBIAR A SMS
+    private readonly usarWhatsApp: boolean = false; // ⭐ FALSE = SMS, TRUE = WhatsApp
     private readonly whatsappNumber: string = 'whatsapp:+14155238886';
-    private readonly sandboxCode: string = 'join cage-further'; // ⭐ ACTUALIZADO
+    private readonly sandboxCode: string = 'join cage-further';
 
     constructor() {
         const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -29,7 +29,7 @@ export class TwilioSMSService {
                     this.logger.log(`📱 WhatsApp Sandbox: ${this.whatsappNumber}`);
                     this.logger.log(`📱 Código de activación: "${this.sandboxCode}"`);
                 } else {
-                    this.logger.log(`📱 Número de envío: ${process.env.TWILIO_PHONE_NUMBER || '+524931720063'}`);
+                    this.logger.log(`📱 Número de envío: ${process.env.TWILIO_PHONE_NUMBER || '+14754264573'}`);
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
@@ -57,7 +57,6 @@ export class TwilioSMSService {
                 this.logger.log(`📤 Enviando WhatsApp (Sandbox):`);
                 this.logger.log(`   FROM: ${fromNumber}`);
                 this.logger.log(`   TO: ${toNumber}`);
-                this.logger.log(`   📌 El paciente debe enviar "${this.sandboxCode}" a ${fromNumber} UNA SOLA VEZ`);
 
                 const message = await this.client.messages.create({
                     body: mensaje,
@@ -68,7 +67,8 @@ export class TwilioSMSService {
                 this.logger.log(`✅ WhatsApp enviado: ${message.sid}`);
                 return true;
             } else {
-                const fromNumber = process.env.TWILIO_PHONE_NUMBER || '+524931720063';
+                // ⭐⭐⭐ SMS - NÚMERO CORRECTO ⭐⭐⭐
+                const fromNumber = process.env.TWILIO_PHONE_NUMBER || '+14754264573';
 
                 this.logger.log(`📤 Enviando SMS:`);
                 this.logger.log(`   FROM: ${fromNumber}`);
@@ -155,3 +155,4 @@ Salud Casa por Casa
         `.trim();
     }
 }
+
