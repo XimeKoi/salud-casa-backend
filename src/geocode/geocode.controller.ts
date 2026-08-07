@@ -159,7 +159,7 @@ export class GeocodeController {
                 .replace(/\s+/g, ' ')
                 .trim();
 
-            // ⭐ SI LA DIRECCIÓN ES MUY CORTA, NO BUSCAR
+           
             if (cleanDireccion.length < 3) {
                 return null;
             }
