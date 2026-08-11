@@ -1,11 +1,11 @@
 // src/whatsapp/whatsapp.controller.ts
 
 import { Controller, Post, Body } from '@nestjs/common';
-import { TwilioSMSService } from '../services/twilio-sms.service';
+import { SMSService } from '../services/sms.service';
 
 @Controller('whatsapp')
 export class WhatsAppController {
-    constructor(private smsService: TwilioSMSService) { }
+    constructor(private smsService: SMSService) { }
 
     @Post('confirmacion')
     async enviarConfirmacion(@Body() data: {
@@ -15,27 +15,32 @@ export class WhatsAppController {
         hora: string;
         direccion: string;
     }) {
-        console.log('📥 [WhatsAppController] Recibida petición de confirmación:');
-        console.log('  📱 Teléfono:', data.telefono);
-        console.log('  👤 Paciente:', data.nombrePaciente);
-        console.log('  📅 Fecha:', data.fecha);
-        console.log('  ⏰ Hora:', data.hora);
-        console.log('  📍 Dirección:', data.direccion);
+        console.log('📥 [Confirmación] Recibida petición:');
+        console.log(`   📱 Teléfono: ${data.telefono}`);
+        console.log(`   👤 Paciente: ${data.nombrePaciente}`);
 
-        const enviado = await this.smsService.enviarConfirmacionVisita(
-            data.telefono,
-            data.nombrePaciente,
-            data.fecha,
-            data.hora,
-            data.direccion
-        );
+        try {
+            const enviado = await this.smsService.enviarConfirmacionCita(
+                data.telefono,
+                data.nombrePaciente,
+                data.fecha,
+                data.hora,
+                data.direccion
+            );
 
-        console.log('📤 [WhatsAppController] Resultado:', enviado ? '✅ Enviado' : '❌ Error');
-
-        return {
-            success: enviado,
-            message: enviado ? 'Confirmación enviada por SMS' : 'Error al enviar'
-        };
+            return {
+                success: enviado,
+                message: enviado ? 'Confirmación enviada por SMS' : 'Error al enviar'
+            };
+        } catch (error) {
+            // ⭐ CORREGIDO: manejar error de tipo unknown
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            console.error('❌ Error en confirmación:', errorMessage);
+            return {
+                success: false,
+                message: `Error: ${errorMessage}`
+            };
+        }
     }
 
     @Post('recordatorio')
@@ -46,21 +51,31 @@ export class WhatsAppController {
         hora: string;
         direccion: string;
     }) {
-        console.log('📥 [WhatsAppController] Recibida petición de recordatorio:');
-        console.log('  📱 Teléfono:', data.telefono);
-        console.log('  👤 Paciente:', data.nombrePaciente);
+        console.log('📥 [Recordatorio] Recibida petición:');
+        console.log(`   📱 Teléfono: ${data.telefono}`);
+        console.log(`   👤 Paciente: ${data.nombrePaciente}`);
 
-        const enviado = await this.smsService.enviarRecordatorioVisita(
-            data.telefono,
-            data.nombrePaciente,
-            data.fecha,
-            data.hora,
-            data.direccion
-        );
+        try {
+            const enviado = await this.smsService.enviarRecordatorioCita(
+                data.telefono,
+                data.nombrePaciente,
+                data.fecha,
+                data.hora,
+                data.direccion
+            );
 
-        return {
-            success: enviado,
-            message: enviado ? 'Recordatorio enviado por SMS' : 'Error al enviar'
-        };
+            return {
+                success: enviado,
+                message: enviado ? 'Recordatorio enviado por SMS' : 'Error al enviar'
+            };
+        } catch (error) {
+            // ⭐ CORREGIDO: manejar error de tipo unknown
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            console.error('❌ Error en recordatorio:', errorMessage);
+            return {
+                success: false,
+                message: `Error: ${errorMessage}`
+            };
+        }
     }
 }
