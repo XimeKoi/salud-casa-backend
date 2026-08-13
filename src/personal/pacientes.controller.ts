@@ -8,7 +8,7 @@ export class PacientesController {
     constructor(private readonly pacientesService: PacientesService) { }
 
     // ⭐ ==========================================
-    // ⭐ RUTAS ESPECÍFICAS - DEBEN IR ANTES DE :id
+    // ⭐ GET - LISTAR PACIENTES
     // ⭐ ==========================================
 
     @Get()
@@ -60,7 +60,61 @@ export class PacientesController {
     }
 
     // ⭐ ==========================================
-    // ⭐ RUTA DINÁMICA - DEBE IR AL FINAL
+    // ⭐ POST - CREAR PACIENTE (NUEVO)
+    // ⭐ ==========================================
+
+    @Post()
+    async crearPaciente(@Body() data: any) {
+        console.log('📥 [POST /pacientes] Recibido:', data);
+
+        try {
+            // Validar campos obligatorios
+            if (!data.nombre || !data.apellidoPaterno) {
+                return {
+                    success: false,
+                    message: 'Nombre y Apellido Paterno son obligatorios'
+                };
+            }
+
+            const nuevoPaciente = await this.pacientesService.crearPaciente(data);
+
+            console.log('✅ Paciente guardado:', nuevoPaciente.id);
+
+            return {
+                success: true,
+                id: nuevoPaciente.id,
+                message: 'Paciente registrado correctamente',
+                paciente: nuevoPaciente
+            };
+        } catch (error) {
+            // ⭐ CORREGIDO: manejar error correctamente
+            console.error('❌ Error en POST /pacientes:', error);
+
+            let mensajeError = 'Error al guardar el paciente';
+
+            if (error instanceof Error) {
+                mensajeError = error.message;
+            } else if (typeof error === 'string') {
+                mensajeError = error;
+            } else if (error && typeof error === 'object' && 'message' in error) {
+                mensajeError = String(error.message);
+            }
+
+            // ⭐ SI EL ERROR ES DE CONEXIÓN A BD
+            if (mensajeError.includes('password') || mensajeError.includes('SASL')) {
+                mensajeError = 'Error de conexión a la base de datos. Verifica DATABASE_URL';
+            }
+
+            return {
+                success: false,
+                message: mensajeError,
+                error: error instanceof Error ? error.stack : null
+            };
+        }
+    }
+
+    // ⭐ ==========================================
+    // ⭐ GET - OBTENER UN PACIENTE
     // ⭐ ==========================================
 
     @Get(':id')
@@ -204,7 +258,6 @@ export class PacientesController {
     async corregirCoordenadasDistrito() {
         return this.pacientesService.corregirCoordenadasDistrito();
     }
-    // src/personal/pacientes.controller.ts
 
     // ⭐ ==========================================
     // ⭐ NIVELES DE RIESGO - ENDPOINTS

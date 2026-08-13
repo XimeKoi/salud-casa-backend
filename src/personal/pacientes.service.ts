@@ -17,6 +17,52 @@ export class PacientesService {
         private awsGeocodeService: AwsGeocodeService,
     ) { }
 
+    // ⭐ ============================================
+    // ⭐ CREAR PACIENTE (NUEVO)
+    // ⭐ ============================================
+
+    async crearPaciente(data: any): Promise<Paciente> {
+        console.log('📥 [Service] Creando paciente:', data);
+
+        // Validar campos obligatorios
+        if (!data.nombre || !data.apellidoPaterno) {
+            throw new Error('Nombre y Apellido Paterno son obligatorios');
+        }
+
+        // ⭐ VERIFICAR QUE LA BD ESTÉ CONECTADA
+        if (!this.pacientesRepository) {
+            throw new Error('Base de datos no disponible');
+        }
+
+        try {
+            // Crear el paciente con todos los campos
+            const nuevoPaciente = this.pacientesRepository.create({
+                nombre: data.nombre || '',
+                apellidoPaterno: data.apellidoPaterno || '',
+                apellidoMaterno: data.apellidoMaterno || '',
+                curp: data.curp || '',
+                telefonoFijo: data.telefonoFijo || '',
+                telefonoCelular: data.telefonoCelular || '',
+                estatus: data.estatus || 'PENDIENTE',
+                programa: data.programa || 'PAM',
+                direccion: data.direccion || '',
+                lat: data.lat || null,
+                lng: data.lng || null,
+                idEnfermera: data.idEnfermera || 1
+            });
+
+            console.log('📝 Paciente a guardar:', nuevoPaciente);
+
+            const pacienteGuardado = await this.pacientesRepository.save(nuevoPaciente);
+            console.log('✅ Paciente creado:', pacienteGuardado.id);
+            return pacienteGuardado;
+
+        } catch (error) {
+            console.error('❌ Error en crearPaciente service:', error);
+            throw error;
+        }
+    }
+
     async findAll(): Promise<Paciente[]> {
         return this.pacientesRepository.find();
     }
@@ -734,9 +780,6 @@ export class PacientesService {
     // ⭐ NIVELES DE RIESGO
     // ⭐ ============================================
 
-    /**
-     * Obtener todos los niveles de riesgo de pacientes
-     */
     async obtenerNivelesRiesgo(): Promise<any[]> {
         try {
             const result = await this.pacientesRepository
@@ -758,9 +801,6 @@ export class PacientesService {
         }
     }
 
-    /**
-     * Obtener nivel de riesgo de un paciente específico
-     */
     async obtenerNivelRiesgo(pacienteId: number): Promise<string | null> {
         try {
             const result = await this.pacientesRepository
@@ -777,9 +817,6 @@ export class PacientesService {
         }
     }
 
-    /**
-     * Actualizar nivel de riesgo de un paciente
-     */
     async actualizarNivelRiesgo(
         pacienteId: number,
         nivelRiesgo: string | null,
@@ -855,10 +892,8 @@ export class PacientesService {
                 message: 'Nivel de riesgo actualizado correctamente',
                 nivelRiesgo: nivelRiesgo
             };
-
         } catch (error) {
             console.error(`❌ Error actualizando nivel de riesgo para paciente ${pacienteId}:`, error);
-            // ⭐ CORREGIDO: usar error instanceof Error
             const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
             return {
                 success: false,
@@ -868,9 +903,6 @@ export class PacientesService {
         }
     }
 
-    /**
-     * Obtener label del nivel de riesgo
-     */
     private getLabelNivelRiesgo(nivel: string): string {
         const labels = {
             'g1': '🟢 Grupo 1 (Bajo)',
@@ -881,9 +913,6 @@ export class PacientesService {
         return labels[nivel] || nivel;
     }
 
-    /**
-     * Obtener todos los pacientes con su nivel de riesgo
-     */
     async obtenerPacientesConNivelRiesgo(idEnfermera: number): Promise<any[]> {
         try {
             const pacientes = await this.findByIdEnfermera(idEnfermera);
