@@ -1,14 +1,15 @@
 // src/personal/pacientes.controller.ts
 
-import { Controller, Get, Post, Patch, Param, Body, Query, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { PacientesService } from './pacientes.service';
+import { ApiKeyGuard } from '../auth/api-key.guard';
 
 @Controller('pacientes')
 export class PacientesController {
     constructor(private readonly pacientesService: PacientesService) { }
 
     // ⭐ ==========================================
-    // ⭐ GET - LISTAR PACIENTES
+    // ⭐ ENDPOINTS PÚBLICOS (SIN API KEY)
     // ⭐ ==========================================
 
     @Get()
@@ -60,6 +61,42 @@ export class PacientesController {
     }
 
     // ⭐ ==========================================
+    // ⭐ ENDPOINTS PARA JEFES (CON API KEY)
+    // ⭐ ==========================================
+
+    // ⭐ 1. OBTENER TODOS LOS PACIENTES CON ENFERMERA
+    @UseGuards(ApiKeyGuard)
+    @Get('todos-con-enfermera')
+    async findAllWithEnfermera() {
+        console.log('📊 [Controller] Obteniendo todos los pacientes con enfermera');
+        return this.pacientesService.findAllWithEnfermera();
+    }
+
+    // ⭐ 2. OBTENER LISTA DE ENFERMERAS
+    @UseGuards(ApiKeyGuard)
+    @Get('enfermeras')
+    async getEnfermeras() {
+        console.log('📊 [Controller] Obteniendo lista de enfermeras');
+        return this.pacientesService.getEnfermeras();
+    }
+
+    // ⭐ 3. ESTADÍSTICAS GENERALES
+    @UseGuards(ApiKeyGuard)
+    @Get('estadisticas/generales')
+    async getEstadisticasGenerales() {
+        console.log('📊 [Controller] Obteniendo estadísticas generales');
+        return this.pacientesService.getEstadisticasGenerales();
+    }
+
+    // ⭐ 4. INCIDENCIAS (TODAS)
+    @UseGuards(ApiKeyGuard)
+    @Get('incidencias/todas')
+    async getAllIncidencias() {
+        console.log('📊 [Controller] Obteniendo todas las incidencias');
+        return this.pacientesService.getAllIncidencias();
+    }
+
+    // ⭐ ==========================================
     // ⭐ POST - CREAR PACIENTE (NUEVO)
     // ⭐ ==========================================
 
@@ -68,7 +105,6 @@ export class PacientesController {
         console.log('📥 [POST /pacientes] Recibido:', data);
 
         try {
-            // Validar campos obligatorios
             if (!data.nombre || !data.apellidoPaterno) {
                 return {
                     success: false,
@@ -87,7 +123,6 @@ export class PacientesController {
                 paciente: nuevoPaciente
             };
         } catch (error) {
-            // ⭐ CORREGIDO: manejar error correctamente
             console.error('❌ Error en POST /pacientes:', error);
 
             let mensajeError = 'Error al guardar el paciente';
@@ -100,7 +135,6 @@ export class PacientesController {
                 mensajeError = String(error.message);
             }
 
-            // ⭐ SI EL ERROR ES DE CONEXIÓN A BD
             if (mensajeError.includes('password') || mensajeError.includes('SASL')) {
                 mensajeError = 'Error de conexión a la base de datos. Verifica DATABASE_URL';
             }
@@ -121,7 +155,7 @@ export class PacientesController {
     async findOne(@Param('id') id: string) {
         console.log('📍 findOne recibió:', id);
 
-        const rutasEspecificas = ['buscar', 'enfermera', 'test-direcciones', 'geocode-all', 'corregir-distrito'];
+        const rutasEspecificas = ['buscar', 'enfermera', 'test-direcciones', 'geocode-all', 'corregir-distrito', 'todos-con-enfermera', 'enfermeras', 'estadisticas/generales', 'incidencias/todas'];
         if (rutasEspecificas.includes(id)) {
             throw new HttpException(`Ruta no válida: ${id}`, HttpStatus.BAD_REQUEST);
         }

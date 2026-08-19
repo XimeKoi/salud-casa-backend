@@ -20,22 +20,49 @@ export class PacientesService {
     // ⭐ ============================================
     // ⭐ CREAR PACIENTE (NUEVO)
     // ⭐ ============================================
+    // src/personal/pacientes.service.ts
 
+    // ⭐ OBTENER TODAS LAS INCIDENCIAS (para jefes)
+    async getAllIncidencias(): Promise<any[]> {
+        // Obtener incidencias con datos del paciente
+        const incidencias = await this.pacientesRepository.query(`
+        SELECT 
+            i.id,
+            i.tipo,
+            i.descripcion,
+            i.direccion,
+            i.fecha,
+            i.resuelta,
+            i.created_at,
+            p.id as pacienteId,
+            p.nombre as pacienteNombre,
+            p.apellido_paterno as pacienteApellidoPaterno,
+            p.apellido_materno as pacienteApellidoMaterno,
+            p.direccion as pacienteDireccion
+        FROM incidencias i
+        LEFT JOIN pacientes p ON i."pacienteId" = p.id
+        ORDER BY i.fecha DESC
+    `);
+
+        return incidencias.map(i => ({
+            ...i,
+            pacienteNombreCompleto: i.pacienteNombre
+                ? `${i.pacienteApellidoPaterno || ''} ${i.pacienteApellidoMaterno || ''} ${i.pacienteNombre}`.trim()
+                : 'Sin paciente'
+        }));
+    }
     async crearPaciente(data: any): Promise<Paciente> {
         console.log('📥 [Service] Creando paciente:', data);
 
-        // Validar campos obligatorios
         if (!data.nombre || !data.apellidoPaterno) {
             throw new Error('Nombre y Apellido Paterno son obligatorios');
         }
 
-        // ⭐ VERIFICAR QUE LA BD ESTÉ CONECTADA
         if (!this.pacientesRepository) {
             throw new Error('Base de datos no disponible');
         }
 
         try {
-            // Crear el paciente con todos los campos
             const nuevoPaciente = this.pacientesRepository.create({
                 nombre: data.nombre || '',
                 apellidoPaterno: data.apellidoPaterno || '',
@@ -62,6 +89,107 @@ export class PacientesService {
             throw error;
         }
     }
+
+    // ⭐ ============================================
+    // ⭐ NUEVOS MÉTODOS PARA JEFES
+    // ⭐ ============================================
+
+    // ⭐ 1. OBTENER TODOS LOS PACIENTES CON ENFERMERA
+    async findAllWithEnfermera(): Promise<any[]> {
+        const pacientes = await this.pacientesRepository.find({
+            select: [
+                'id', 'nombre', 'apellidoPaterno', 'apellidoMaterno',
+                'direccion', 'telefonoFijo', 'telefonoCelular',
+                'estatus', 'programa', 'lat', 'lng', 'idEnfermera'
+            ]
+        });
+
+        // Obtener nombres de enfermeras
+        const enfermeras = await this.pacientesRepository.query(`
+            SELECT DISTINCT u.id_usuario as id, u.usuario, pe.nombre_completo as nombre
+            FROM usuario u
+            LEFT JOIN personal_enfermeria pe ON u.id_personal_enfermeria = pe.id
+            WHERE u.rol = 'enfermera'
+        `);
+
+        const enfermerasMap = {};
+        enfermeras.forEach(e => {
+            enfermerasMap[e.id] = {
+                usuario: e.usuario,
+                nombreCompleto: e.nombre || e.usuario
+            };
+        });
+
+        return pacientes.map(p => ({
+            ...p,
+            enfermera: enfermerasMap[p.idEnfermera] || null
+        }));
+    }
+
+    // ⭐ 2. OBTENER LISTA DE ENFERMERAS
+    async getEnfermeras(): Promise<any[]> {
+        return this.pacientesRepository.query(`
+            SELECT DISTINCT 
+                u.id_usuario as id,
+                u.usuario,
+                pe.nombre_completo as nombre,
+                pe.telefono,
+                COUNT(p.id) as totalPacientes
+            FROM usuario u
+            LEFT JOIN personal_enfermeria pe ON u.id_personal_enfermeria = pe.id
+            LEFT JOIN pacientes p ON p.idEnfermera = u.id_usuario
+            WHERE u.rol = 'enfermera'
+            GROUP BY u.id_usuario, u.usuario, pe.nombre_completo, pe.telefono
+            ORDER BY pe.nombre_completo
+        `);
+    }
+
+    // ⭐ 3. ESTADÍSTICAS GENERALES
+    async getEstadisticasGenerales(): Promise<any> {
+        const totalPacientes = await this.pacientesRepository.count();
+        const totalVisitados = await this.pacientesRepository.count({
+            where: { estatus: 'VISITADO' }
+        });
+        const totalPendientes = await this.pacientesRepository.count({
+            where: { estatus: 'PENDIENTE' }
+        });
+        const totalIncidencias = await this.pacientesRepository.count({
+            where: { estatus: 'RECHAZO' }
+        });
+        const totalFinados = await this.pacientesRepository.count({
+            where: { estatus: 'FINADO' }
+        });
+        const totalConDiscapacidad = await this.pacientesRepository.count({
+            where: [
+                { discapacidadMotriz: true },
+                { discapacidadVisual: true },
+                { discapacidadAuditiva: true },
+                { discapacidadIntelectual: true },
+                { discapacidadPsicosocial: true }
+            ]
+        });
+
+        const enfermeras = await this.pacientesRepository.query(`
+            SELECT COUNT(DISTINCT idEnfermera) as total
+            FROM pacientes
+            WHERE idEnfermera IS NOT NULL
+        `);
+
+        return {
+            totalPacientes,
+            totalVisitados,
+            totalPendientes,
+            totalIncidencias,
+            totalFinados,
+            totalConDiscapacidad,
+            totalEnfermeras: parseInt(enfermeras[0]?.total || 0),
+            fechaActualizacion: new Date()
+        };
+    }
+
+    // ⭐ ============================================
+    // ⭐ MÉTODOS EXISTENTES
+    // ⭐ ============================================
 
     async findAll(): Promise<Paciente[]> {
         return this.pacientesRepository.find();
