@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notificacion } from './entities/notificacion.entity';
+import { In } from 'typeorm';
 
 @Injectable()
 export class NotificacionesService {
@@ -11,6 +12,10 @@ export class NotificacionesService {
         @InjectRepository(Notificacion)
         private notificacionesRepository: Repository<Notificacion>,
     ) { }
+
+    // ⭐ ==========================================
+    // ⭐ MÉTODOS EXISTENTES
+    // ⭐ ==========================================
 
     async crearNotificacion(data: any): Promise<Notificacion> {
         const notificacion = this.notificacionesRepository.create({
@@ -75,18 +80,13 @@ export class NotificacionesService {
         );
     }
 
-    // ⭐ NUEVO: Método para toggle (leída / no leída) - CORREGIDO
     async toggleEstado(id: number, usuarioId: number, leida: boolean): Promise<void> {
         const updateData: any = { leida: leida };
-
-        // ⭐ Si es leída, asignamos la fecha actual, si no, usamos undefined (no actualizar)
         if (leida) {
             updateData.leidaAt = new Date();
         } else {
-            // ⭐ En lugar de null, usamos undefined para que no intente actualizar el campo
             updateData.leidaAt = undefined;
         }
-
         await this.notificacionesRepository.update(
             { id, usuarioId },
             updateData
@@ -102,5 +102,105 @@ export class NotificacionesService {
 
     async eliminar(id: number, usuarioId: number): Promise<void> {
         await this.notificacionesRepository.delete({ id, usuarioId });
+    }
+
+    // ⭐ ==========================================
+    // ⭐ NUEVOS MÉTODOS PARA JEFES
+    // ⭐ ==========================================
+
+    // ⭐ 1. OBTENER TODAS LAS NOTIFICACIONES
+    async findAllNotificaciones(limit: number = 100, page: number = 1): Promise<any> {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await this.notificacionesRepository.findAndCount({
+            order: { createdAt: 'DESC' },
+            take: limit,
+            skip: skip,
+        });
+
+        // Obtener nombres de usuarios para cada notificación
+        const userIds = data.map(n => n.usuarioId).filter(id => id !== null);
+        let usuariosMap = {};
+
+        if (userIds.length > 0) {
+            const usuarios = await this.notificacionesRepository.query(`
+                SELECT u.id_usuario as id, u.usuario, pe.nombre_completo as nombre
+                FROM usuario u
+                LEFT JOIN personal_enfermeria pe ON u.id_personal_enfermeria = pe.id
+                WHERE u.id_usuario IN (${userIds.join(',')})
+            `);
+
+            usuariosMap = {};
+            usuarios.forEach(u => {
+                usuariosMap[u.id] = {
+                    usuario: u.usuario,
+                    nombre: u.nombre || u.usuario
+                };
+            });
+        }
+
+        const dataConUsuarios = data.map(n => ({
+            ...n,
+            usuario: n.usuarioId ? usuariosMap[n.usuarioId] || null : null
+        }));
+
+        return { data: dataConUsuarios, total };
+    }
+
+    // ⭐ 2. OBTENER NOTIFICACIONES POR ROL
+    async findNotificacionesByRol(rol: string, limit: number = 100, page: number = 1): Promise<any> {
+        const skip = (page - 1) * limit;
+
+        // Primero obtener los usuarios con ese rol
+        const usuarios = await this.notificacionesRepository.query(`
+            SELECT id_usuario FROM usuario WHERE rol = $1
+        `, [rol]);
+
+        const userIds = usuarios.map(u => u.id_usuario);
+
+        if (userIds.length === 0) {
+            return { data: [], total: 0 };
+        }
+
+        const [data, total] = await this.notificacionesRepository.findAndCount({
+            where: { usuarioId: In(userIds) },
+            order: { createdAt: 'DESC' },
+            take: limit,
+            skip: skip,
+        });
+
+        return { data, total };
+    }
+
+    // ⭐ 3. ESTADÍSTICAS DE NOTIFICACIONES
+    async getEstadisticasNotificaciones(): Promise<any> {
+        const total = await this.notificacionesRepository.count();
+        const noLeidas = await this.notificacionesRepository.count({
+            where: { leida: false }
+        });
+        const urgentes = await this.notificacionesRepository.count({
+            where: { leida: false, prioridad: 'urgente' }
+        });
+
+        const porTipo = await this.notificacionesRepository
+            .createQueryBuilder('n')
+            .select('n.tipo, COUNT(*) as total')
+            .groupBy('n.tipo')
+            .getRawMany();
+
+        const porPrioridad = await this.notificacionesRepository
+            .createQueryBuilder('n')
+            .select('n.prioridad, COUNT(*) as total')
+            .groupBy('n.prioridad')
+            .getRawMany();
+
+        return {
+            total,
+            noLeidas,
+            urgentes,
+            porTipo,
+            porPrioridad,
+            fechaActualizacion: new Date()
+        };
     }
 }
