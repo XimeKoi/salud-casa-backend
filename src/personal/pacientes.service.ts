@@ -22,7 +22,7 @@ export class PacientesService {
     // ⭐ ============================================
     // src/personal/pacientes.service.ts
 
-    // ⭐ OBTENER TODAS LAS INCIDENCIAS (para jefes)
+    // OBTENER TODAS LAS INCIDENCIAS (distritales)
     async getAllIncidencias(): Promise<any[]> {
         // Obtener incidencias con datos del paciente
         const incidencias = await this.pacientesRepository.query(`

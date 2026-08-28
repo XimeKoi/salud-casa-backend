@@ -10,6 +10,7 @@ import { AppService } from './app.service';
 import { PersonalModule } from './personal/personal.module';
 import { ComunicacionModule } from './comunicacion/comunicacion.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { DashboardModule } from './dashboard/dashboard.module';  // ← AGREGAR
 import { AuthController } from './auth/auth.controller';
 import { Usuario } from './personal/entities/user.entity';
 import { PersonalEnfermeria } from './personal/entities/personal-enfermeria.entity';
@@ -59,6 +60,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
     PersonalModule,
     ComunicacionModule,
     NotificacionesModule,
+    DashboardModule,  // ← AGREGAR
     GeocodeModule,
     WhatsAppModule,
   ],

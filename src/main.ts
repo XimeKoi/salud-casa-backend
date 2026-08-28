@@ -12,7 +12,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   const nodeEnv = process.env.NODE_ENV || 'development';
 
-  // ⭐ CORS - PERMITIR NETLIFY Y LOCALHOST
+  // ⭐ CORS - PERMITIR DOMINIOS
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) {
@@ -20,6 +20,7 @@ async function bootstrap() {
         return;
       }
 
+      // ⭐ DOMINIOS PERMITIDOS
       const isNetlify = /\.netlify\.app$/.test(origin) ||
         /\.netlify\.com$/.test(origin) ||
         origin.includes('netlify.app') ||
@@ -29,7 +30,12 @@ async function bootstrap() {
         origin.includes('127.0.0.1') ||
         origin.includes('192.168.');
 
-      if (isNetlify || isLocal || nodeEnv === 'development') {
+      // ⭐ AGREGAR DOMINIO DEL SISTEMA DE ELLA
+      const isHerSystem = origin.includes('sistema-de-ella') ||
+        origin.includes('jefes-app') ||
+        origin.includes('tu-companera.com'); // <-- CAMBIAR POR EL DOMINIO REAL DE ELLA
+
+      if (isNetlify || isLocal || isHerSystem || nodeEnv === 'development') {
         callback(null, true);
       } else {
         logger.warn(`CORS bloqueado para: ${origin}`);
