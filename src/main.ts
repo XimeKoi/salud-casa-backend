@@ -33,7 +33,7 @@ async function bootstrap() {
       // ⭐ AGREGAR DOMINIO DEL SISTEMA DE ELLA
       const isHerSystem = origin.includes('sistema-de-ella') ||
         origin.includes('jefes-app') ||
-        origin.includes('tu-companera.com'); // <-- CAMBIAR POR EL DOMINIO REAL DE ELLA
+        origin.includes('tu-companera.com');
 
       if (isNetlify || isLocal || isHerSystem || nodeEnv === 'development') {
         callback(null, true);
@@ -44,7 +44,15 @@ async function bootstrap() {
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+    // ⭐ AGREGAR x-api-key Y api-key A LOS HEADERS PERMITIDOS
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+      'x-api-key',    // ← AGREGAR ESTO
+      'api-key'       // ← AGREGAR ESTO (por si acaso)
+    ],
   });
 
   logger.log(`🚀 Servidor iniciado en puerto ${port}`);
