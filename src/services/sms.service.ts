@@ -86,16 +86,12 @@ export class SMSService {
         return `
 🏥 SALUD CASA POR CASA
 
-Hola ${nombre}, ✅
+Hola ${nombre}, 
 
 Su visita ha sido agendada:
 📅 Fecha: ${fecha}
 ⏰ Hora: ${hora}
-📍 Dirección: ${direccion}
 
-📌 Recuerde tener a la mano:
-- Identificación oficial
-- CURP
 
 💚 Su salud es nuestra prioridad.
         `.trim();
