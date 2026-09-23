@@ -1,3 +1,5 @@
+// src/auth/auth.controller.ts
+
 import { Controller, Post, Body } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -47,6 +49,7 @@ export class AuthController {
                     id: usuario.id_usuario,
                     username: usuario.usuario,
                     role: usuario.rol || 'enfermera',
+                    id_personal_enfermeria: usuario.id_personal_enfermeria,  // ← AGREGADO
                     nombre: datosPersonales?.nombre_completo || null,
                     entidad: datosPersonales?.entidad || null,
                     region: datosPersonales?.region || null,
