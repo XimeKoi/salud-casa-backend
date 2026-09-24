@@ -1,3 +1,5 @@
+// src/personal/entities/user.entity.ts
+
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('usuario')
@@ -17,4 +19,8 @@ export class Usuario {
     // ✅ SOLO ESTA COLUMNA - elimina id_personal
     @Column({ nullable: true, name: 'id_personal_enfermeria' })
     id_personal_enfermeria: number;
+
+    // ⭐ AGREGAR ESTO
+    @Column({ nullable: true })
+    distrito: string;
 }

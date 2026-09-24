@@ -1,3 +1,5 @@
+// src/personal/entities/personal-enfermeria.entity.ts
+
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('personal_enfermeria')
@@ -37,4 +39,8 @@ export class PersonalEnfermeria {
 
     @Column({ name: 'nivel_academico', nullable: true })
     nivel_academico: string;
+
+    // ⭐ AGREGAR ESTO
+    @Column({ nullable: true })
+    distrito: string;
 }

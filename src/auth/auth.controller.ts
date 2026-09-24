@@ -34,12 +34,14 @@ export class AuthController {
 
             // ⭐ ============================================
             // ⭐ SI EL ROL ES DISTRITAL O ADMIN
-            // ⭐ DEVOLVER TODAS LAS ENFERMERAS
+            // ⭐ DEVOLVER SOLO LAS ENFERMERAS DE SU DISTRITO
             // ⭐ ============================================
             if (usuario.rol === 'distrital' || usuario.rol === 'admin') {
-                const todasLasEnfermeras = await this.personalRepository.find();
+                const enfermerasDelDistrito = await this.personalRepository.find({
+                    where: { distrito: usuario.distrito }
+                });
 
-                console.log('Enfermeras encontradas para distrital:', todasLasEnfermeras.length);
+                console.log(`Distrital ${usuario.usuario} - Distrito: ${usuario.distrito} - Enfermeras: ${enfermerasDelDistrito.length}`);
 
                 return {
                     success: true,
@@ -47,9 +49,10 @@ export class AuthController {
                         id: usuario.id_usuario,
                         username: usuario.usuario,
                         role: usuario.rol,
+                        distrito: usuario.distrito,
                         id_personal_enfermeria: null,
                         nombre: usuario.usuario,
-                        enfermeras: todasLasEnfermeras  // ← TODAS LAS ENFERMERAS
+                        enfermeras: enfermerasDelDistrito  // ← SOLO LAS DE SU DISTRITO
                     }
                 };
             }
@@ -81,6 +84,7 @@ export class AuthController {
                     municipio: datosPersonales?.municipio || null,
                     zona: datosPersonales?.zona || null,
                     zs: datosPersonales?.zs || null,
+                    distrito: datosPersonales?.distrito || null,
                     idInterno: datosPersonales?.id_interno || null,
                     telefono: datosPersonales?.telefono || null,
                     curp: datosPersonales?.curp || null,
