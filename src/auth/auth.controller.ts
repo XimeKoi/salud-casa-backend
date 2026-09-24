@@ -32,9 +32,34 @@ export class AuthController {
                 return { success: false, message: 'Contraseña incorrecta' };
             }
 
+            // ⭐ ============================================
+            // ⭐ SI EL ROL ES DISTRITAL O ADMIN
+            // ⭐ DEVOLVER TODAS LAS ENFERMERAS
+            // ⭐ ============================================
+            if (usuario.rol === 'distrital' || usuario.rol === 'admin') {
+                const todasLasEnfermeras = await this.personalRepository.find();
+
+                console.log('Enfermeras encontradas para distrital:', todasLasEnfermeras.length);
+
+                return {
+                    success: true,
+                    user: {
+                        id: usuario.id_usuario,
+                        username: usuario.usuario,
+                        role: usuario.rol,
+                        id_personal_enfermeria: null,
+                        nombre: usuario.usuario,
+                        enfermeras: todasLasEnfermeras  // ← TODAS LAS ENFERMERAS
+                    }
+                };
+            }
+
+            // ⭐ ============================================
+            // ⭐ SI EL ROL ES ENFERMERA
+            // ⭐ DEVOLVER SOLO SUS DATOS
+            // ⭐ ============================================
             let datosPersonales: PersonalEnfermeria | null = null;
 
-            // SOLO usar id_personal_enfermeria
             if (usuario.id_personal_enfermeria) {
                 datosPersonales = await this.personalRepository.findOne({
                     where: { id: usuario.id_personal_enfermeria }
@@ -49,7 +74,7 @@ export class AuthController {
                     id: usuario.id_usuario,
                     username: usuario.usuario,
                     role: usuario.rol || 'enfermera',
-                    id_personal_enfermeria: usuario.id_personal_enfermeria,  // ← AGREGADO
+                    id_personal_enfermeria: usuario.id_personal_enfermeria,
                     nombre: datosPersonales?.nombre_completo || null,
                     entidad: datosPersonales?.entidad || null,
                     region: datosPersonales?.region || null,
