@@ -116,4 +116,18 @@ export class NotificacionesController {
             page ? parseInt(page) : 1
         );
     }
+    // ⭐ ENDPOINT PARA DISTRITALES
+    @Get('usuario-con-distrito/:usuarioId')
+    async getByUsuarioConDistrito(
+        @Param('usuarioId') usuarioId: string,
+        @Query('limit') limit?: string,
+        @Query('page') page?: string,
+    ) {
+        console.log('📊 [Controller] Obteniendo notificaciones con distrito');
+        return this.notificacionesService.findByUsuarioConDistrito(
+            parseInt(usuarioId),
+            limit ? parseInt(limit) : 50,
+            page ? parseInt(page) : 1
+        );
+    }
 }

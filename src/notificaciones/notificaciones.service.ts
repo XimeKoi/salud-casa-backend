@@ -2,15 +2,17 @@
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Notificacion } from './entities/notificacion.entity';
-import { In } from 'typeorm';
+import { Usuario } from '../personal/entities/user.entity';
 
 @Injectable()
 export class NotificacionesService {
     constructor(
         @InjectRepository(Notificacion)
         private notificacionesRepository: Repository<Notificacion>,
+        @InjectRepository(Usuario)
+        private usuarioRepository: Repository<Usuario>,
     ) { }
 
     // ⭐ ==========================================
@@ -49,6 +51,56 @@ export class NotificacionesService {
     async findByUsuario(usuarioId: number, limit: number = 50, page: number = 1): Promise<any> {
         const skip = (page - 1) * limit;
 
+        const [data, total] = await this.notificacionesRepository.findAndCount({
+            where: { usuarioId },
+            order: { createdAt: 'DESC' },
+            take: limit,
+            skip: skip,
+        });
+
+        return { data, total };
+    }
+
+    // ⭐ ==========================================
+    // ⭐ MÉTODO PARA DISTRITALES
+    // ⭐ VE NOTIFICACIONES DE TODOS LOS USUARIOS DE SU DISTRITO
+    // ⭐ ==========================================
+
+    async findByUsuarioConDistrito(usuarioId: number, limit: number = 50, page: number = 1): Promise<any> {
+        const skip = (page - 1) * limit;
+
+        // 1. Buscar al usuario
+        const usuario = await this.usuarioRepository.findOne({
+            where: { id_usuario: usuarioId }
+        });
+
+        if (!usuario) {
+            return { data: [], total: 0 };
+        }
+
+        console.log(`Buscando notificaciones para: ${usuario.usuario} (${usuario.rol})`);
+
+        // 2. Si es distrital o admin, ver notificaciones de TODOS los usuarios de su distrito
+        if (usuario.rol === 'distrital' || usuario.rol === 'admin') {
+            const usuariosDelDistrito = await this.usuarioRepository.find({
+                where: { distrito: usuario.distrito }
+            });
+
+            const idsUsuarios = usuariosDelDistrito.map(u => u.id_usuario);
+
+            console.log(`Distrito ${usuario.distrito} - Usuarios:`, idsUsuarios);
+
+            const [data, total] = await this.notificacionesRepository.findAndCount({
+                where: { usuarioId: In(idsUsuarios) },
+                order: { createdAt: 'DESC' },
+                take: limit,
+                skip: skip,
+            });
+
+            return { data, total };
+        }
+
+        // 3. Si es enfermera, solo sus notificaciones
         const [data, total] = await this.notificacionesRepository.findAndCount({
             where: { usuarioId },
             order: { createdAt: 'DESC' },
@@ -105,10 +157,9 @@ export class NotificacionesService {
     }
 
     // ⭐ ==========================================
-    // ⭐ NUEVOS MÉTODOS PARA JEFES
+    // ⭐ MÉTODOS PARA JEFES
     // ⭐ ==========================================
 
-    // ⭐ 1. OBTENER TODAS LAS NOTIFICACIONES
     async findAllNotificaciones(limit: number = 100, page: number = 1): Promise<any> {
         const skip = (page - 1) * limit;
 
@@ -118,7 +169,6 @@ export class NotificacionesService {
             skip: skip,
         });
 
-        // Obtener nombres de usuarios para cada notificación
         const userIds = data.map(n => n.usuarioId).filter(id => id !== null);
         let usuariosMap = {};
 
@@ -147,11 +197,9 @@ export class NotificacionesService {
         return { data: dataConUsuarios, total };
     }
 
-    // ⭐ 2. OBTENER NOTIFICACIONES POR ROL
     async findNotificacionesByRol(rol: string, limit: number = 100, page: number = 1): Promise<any> {
         const skip = (page - 1) * limit;
 
-        // Primero obtener los usuarios con ese rol
         const usuarios = await this.notificacionesRepository.query(`
             SELECT id_usuario FROM usuario WHERE rol = $1
         `, [rol]);
@@ -172,7 +220,6 @@ export class NotificacionesService {
         return { data, total };
     }
 
-    // ⭐ 3. ESTADÍSTICAS DE NOTIFICACIONES
     async getEstadisticasNotificaciones(): Promise<any> {
         const total = await this.notificacionesRepository.count();
         const noLeidas = await this.notificacionesRepository.count({
