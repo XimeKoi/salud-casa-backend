@@ -1,8 +1,10 @@
-﻿import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+﻿// src/notificaciones/entities/notificacion.entity.ts
+
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
 @Entity('notificaciones')
 export class Notificacion {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn({ name: 'idNotificacion' })  // ⭐ AGREGAR name
     id: number;
 
     @Column({ type: 'varchar', length: 255 })
@@ -11,7 +13,7 @@ export class Notificacion {
     @Column({ type: 'text' })
     mensaje: string;
 
-    @Column({ type: 'varchar', length: 50 })
+    @Column({ type: 'varchar', length: 50, name: 'idTipoNotificacionFK' })  // ⭐ AGREGAR name
     tipo: string;
 
     @Column({ type: 'varchar', length: 20, default: 'media' })
