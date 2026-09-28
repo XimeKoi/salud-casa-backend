@@ -1,9 +1,11 @@
+// src/personal/entities/incidencia.entity.ts
+
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Paciente } from './paciente.entity';
 
 @Entity('incidencias')
 export class Incidencia {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn({ name: 'idIncidencias' })  // ⭐ AGREGAR name
     id: number;
 
     @Column({ type: 'varchar', length: 50 })
@@ -15,7 +17,7 @@ export class Incidencia {
     @Column({ type: 'varchar', length: 255 })
     direccion: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'timestamp', name: 'fechas', default: () => 'CURRENT_TIMESTAMP' })  // ⭐ AGREGAR name
     fecha: Date;
 
     @Column({ type: 'jsonb', nullable: true })
