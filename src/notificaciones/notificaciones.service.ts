@@ -58,7 +58,10 @@ export class NotificacionesService {
             skip: skip,
         });
 
-        return { data, total };
+        // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
+        const dataConEnfermera = await this.agregarNombreEnfermera(data);
+
+        return { data: dataConEnfermera, total };
     }
 
     // ⭐ ==========================================
@@ -97,7 +100,10 @@ export class NotificacionesService {
                 skip: skip,
             });
 
-            return { data, total };
+            // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
+            const dataConEnfermera = await this.agregarNombreEnfermera(data);
+
+            return { data: dataConEnfermera, total };
         }
 
         // 3. Si es enfermera, solo sus notificaciones
@@ -108,7 +114,73 @@ export class NotificacionesService {
             skip: skip,
         });
 
-        return { data, total };
+        // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
+        const dataConEnfermera = await this.agregarNombreEnfermera(data);
+
+        return { data: dataConEnfermera, total };
+    }
+
+    // ⭐ ==========================================
+    // ⭐ MÉTODO AUXILIAR: AGREGAR NOMBRE DE ENFERMERA
+    // ⭐ Hace el JOIN: notificaciones → usuario → personal_enfermeria
+    // ⭐ ==========================================
+    private async agregarNombreEnfermera(notificaciones: Notificacion[]): Promise<any[]> {
+        if (notificaciones.length === 0) return [];
+
+        // 1. Obtener todos los usuarioIds únicos (sin nulls)
+        const usuarioIds = [...new Set(
+            notificaciones
+                .map(n => n.usuarioId)
+                .filter(id => id !== null && id !== undefined)
+        )];
+
+        if (usuarioIds.length === 0) {
+            return notificaciones.map(n => ({ ...n, nombreEnfermera: null }));
+        }
+
+        // 2. Obtener los usuarios con sus id_personal_enfermeria
+        const usuarios = await this.usuarioRepository.find({
+            where: { id_usuario: In(usuarioIds) }
+        });
+
+        // 3. Obtener los id_personal_enfermeria
+        const personalIds = [...new Set(
+            usuarios
+                .map(u => u.id_personal_enfermeria)
+                .filter(id => id !== null && id !== undefined)
+        )];
+
+        // 4. Obtener los nombres de las enfermeras
+        let enfermeras: any[] = [];
+        if (personalIds.length > 0) {
+            enfermeras = await this.notificacionesRepository.query(
+                `SELECT id, nombre_completo FROM personal_enfermeria WHERE id IN (${personalIds.join(',')})`
+            );
+        }
+
+        // 5. Crear mapas para búsqueda rápida
+        const usuariosMap = new Map<number, any>();
+        usuarios.forEach(u => {
+            usuariosMap.set(u.id_usuario, u);
+        });
+
+        const enfermerasMap = new Map<number, string>();
+        enfermeras.forEach(e => {
+            enfermerasMap.set(e.id, e.nombre_completo);
+        });
+
+        // 6. Agregar el nombre de la enfermera a cada notificación
+        return notificaciones.map(n => {
+            const usuario = n.usuarioId ? usuariosMap.get(n.usuarioId) : null;
+            const nombreEnfermera = usuario && usuario.id_personal_enfermeria
+                ? enfermerasMap.get(usuario.id_personal_enfermeria) || null
+                : null;
+
+            return {
+                ...n,
+                nombreEnfermera: nombreEnfermera
+            };
+        });
     }
 
     async getContador(usuarioId: number): Promise<any> {
@@ -169,32 +241,10 @@ export class NotificacionesService {
             skip: skip,
         });
 
-        const userIds = data.map(n => n.usuarioId).filter(id => id !== null);
-        let usuariosMap = {};
+        // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
+        const dataConEnfermera = await this.agregarNombreEnfermera(data);
 
-        if (userIds.length > 0) {
-            const usuarios = await this.notificacionesRepository.query(`
-                SELECT u.id_usuario as id, u.usuario, pe.nombre_completo as nombre
-                FROM usuario u
-                LEFT JOIN personal_enfermeria pe ON u.id_personal_enfermeria = pe.id
-                WHERE u.id_usuario IN (${userIds.join(',')})
-            `);
-
-            usuariosMap = {};
-            usuarios.forEach(u => {
-                usuariosMap[u.id] = {
-                    usuario: u.usuario,
-                    nombre: u.nombre || u.usuario
-                };
-            });
-        }
-
-        const dataConUsuarios = data.map(n => ({
-            ...n,
-            usuario: n.usuarioId ? usuariosMap[n.usuarioId] || null : null
-        }));
-
-        return { data: dataConUsuarios, total };
+        return { data: dataConEnfermera, total };
     }
 
     async findNotificacionesByRol(rol: string, limit: number = 100, page: number = 1): Promise<any> {
@@ -217,7 +267,10 @@ export class NotificacionesService {
             skip: skip,
         });
 
-        return { data, total };
+        // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
+        const dataConEnfermera = await this.agregarNombreEnfermera(data);
+
+        return { data: dataConEnfermera, total };
     }
 
     async getEstadisticasNotificaciones(): Promise<any> {
