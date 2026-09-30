@@ -14,6 +14,9 @@ export class Incidencia {
     @Column({ type: 'text' })
     descripcion: string;
 
+    @Column({ type: 'varchar', length: 50, default: 'pendiente' })
+    estado: string;
+
     @Column({ type: 'varchar', length: 255 })
     direccion: string;
 

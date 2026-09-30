@@ -1,3 +1,5 @@
+// src/personal/incidencias.service.ts
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -45,7 +47,8 @@ export class IncidenciasService {
             direccion: createIncidenciaDto.direccion,
             fecha: createIncidenciaDto.fecha || new Date(),
             fotos: createIncidenciaDto.fotos || [],
-            resuelta: createIncidenciaDto.resuelta || false,
+            resuelta: false,
+            estado: 'pendiente',  // ⭐ AGREGAR
             pacienteId: createIncidenciaDto.pacienteId || null,
         };
 
@@ -110,8 +113,10 @@ export class IncidenciasService {
             throw new NotFoundException(`Incidencia con ID ${id} no encontrada`);
         }
 
+        // ⭐ SI VIENE resuelta, ACTUALIZAR estado TAMBIÉN
         if (updateIncidenciaDto.resuelta !== undefined) {
             incidencia.resuelta = updateIncidenciaDto.resuelta;
+            incidencia.estado = updateIncidenciaDto.resuelta ? 'resuelto' : 'pendiente';
 
             if (incidencia.resuelta && incidencia.paciente) {
                 const nombreCompleto = this.getNombreCompleto(incidencia.paciente);
@@ -128,6 +133,13 @@ export class IncidenciasService {
                 });
             }
         }
+
+        // ⭐ SI VIENE estado, ACTUALIZAR resuelta TAMBIÉN
+        if ((updateIncidenciaDto as any).estado !== undefined) {
+            incidencia.estado = (updateIncidenciaDto as any).estado;
+            incidencia.resuelta = incidencia.estado === 'resuelto';
+        }
+
         incidencia.updatedAt = new Date();
 
         await this.incidenciasRepository.save(incidencia);
@@ -160,6 +172,7 @@ export class IncidenciasService {
             fecha: incidencia.fecha,
             fotos: incidencia.fotos || [],
             resuelta: incidencia.resuelta,
+            estado: incidencia.estado || 'pendiente',  // ⭐ AGREGAR
             pacienteId: incidencia.pacienteId,
             otroTexto: incidencia.otroTexto || '',
             createdAt: incidencia.createdAt,
