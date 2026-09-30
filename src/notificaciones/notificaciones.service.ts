@@ -2,8 +2,9 @@
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Not } from 'typeorm';
 import { Notificacion } from './entities/notificacion.entity';
+import { NotificacionOculta } from './entities/notificacion-oculta.entity';  // ⭐ AGREGAR
 import { Usuario } from '../personal/entities/user.entity';
 
 @Injectable()
@@ -13,6 +14,8 @@ export class NotificacionesService {
         private notificacionesRepository: Repository<Notificacion>,
         @InjectRepository(Usuario)
         private usuarioRepository: Repository<Usuario>,
+        @InjectRepository(NotificacionOculta)  // ⭐ AGREGAR
+        private notificacionOcultaRepository: Repository<NotificacionOculta>,  // ⭐ AGREGAR
     ) { }
 
     // ⭐ ==========================================
@@ -48,17 +51,36 @@ export class NotificacionesService {
         return notificaciones;
     }
 
+    // ⭐ ==========================================
+    // ⭐ MÉTODO AUXILIAR: OBTENER IDs OCULTOS PARA UN USUARIO
+    // ⭐ ==========================================
+    private async obtenerIdsOcultos(usuarioId: number): Promise<number[]> {
+        const ocultas = await this.notificacionOcultaRepository.find({
+            where: { usuario_id: usuarioId },
+            select: ['notificacion_id']
+        });
+        return ocultas.map(o => o.notificacion_id);
+    }
+
     async findByUsuario(usuarioId: number, limit: number = 50, page: number = 1): Promise<any> {
         const skip = (page - 1) * limit;
 
-        const [data, total] = await this.notificacionesRepository.findAndCount({
-            where: { usuarioId },
-            order: { createdAt: 'DESC' },
-            take: limit,
-            skip: skip,
-        });
+        // ⭐ OBTENER IDs OCULTOS
+        const idsOcultos = await this.obtenerIdsOcultos(usuarioId);
 
-        // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
+        const queryBuilder = this.notificacionesRepository.createQueryBuilder('n')
+            .where('n.usuarioId = :usuarioId', { usuarioId })
+            .orderBy('n.createdAt', 'DESC')
+            .take(limit)
+            .skip(skip);
+
+        // ⭐ EXCLUIR LAS OCULTAS
+        if (idsOcultos.length > 0) {
+            queryBuilder.andWhere('n.id NOT IN (:...idsOcultos)', { idsOcultos });
+        }
+
+        const [data, total] = await queryBuilder.getManyAndCount();
+
         const dataConEnfermera = await this.agregarNombreEnfermera(data);
 
         return { data: dataConEnfermera, total };
@@ -66,13 +88,11 @@ export class NotificacionesService {
 
     // ⭐ ==========================================
     // ⭐ MÉTODO PARA DISTRITALES
-    // ⭐ VE NOTIFICACIONES DE TODOS LOS USUARIOS DE SU DISTRITO
     // ⭐ ==========================================
 
     async findByUsuarioConDistrito(usuarioId: number, limit: number = 50, page: number = 1): Promise<any> {
         const skip = (page - 1) * limit;
 
-        // 1. Buscar al usuario
         const usuario = await this.usuarioRepository.findOne({
             where: { id_usuario: usuarioId }
         });
@@ -83,7 +103,9 @@ export class NotificacionesService {
 
         console.log(`Buscando notificaciones para: ${usuario.usuario} (${usuario.rol})`);
 
-        // 2. Si es distrital o admin, ver notificaciones de TODOS los usuarios de su distrito
+        // ⭐ OBTENER IDs OCULTOS
+        const idsOcultos = await this.obtenerIdsOcultos(usuarioId);
+
         if (usuario.rol === 'distrital' || usuario.rol === 'admin') {
             const usuariosDelDistrito = await this.usuarioRepository.find({
                 where: { distrito: usuario.distrito }
@@ -93,28 +115,37 @@ export class NotificacionesService {
 
             console.log(`Distrito ${usuario.distrito} - Usuarios:`, idsUsuarios);
 
-            const [data, total] = await this.notificacionesRepository.findAndCount({
-                where: { usuarioId: In(idsUsuarios) },
-                order: { createdAt: 'DESC' },
-                take: limit,
-                skip: skip,
-            });
+            const queryBuilder = this.notificacionesRepository.createQueryBuilder('n')
+                .where('n.usuarioId IN (:...idsUsuarios)', { idsUsuarios })
+                .orderBy('n.createdAt', 'DESC')
+                .take(limit)
+                .skip(skip);
 
-            // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
+            // ⭐ EXCLUIR LAS OCULTAS
+            if (idsOcultos.length > 0) {
+                queryBuilder.andWhere('n.id NOT IN (:...idsOcultos)', { idsOcultos });
+            }
+
+            const [data, total] = await queryBuilder.getManyAndCount();
+
             const dataConEnfermera = await this.agregarNombreEnfermera(data);
 
             return { data: dataConEnfermera, total };
         }
 
-        // 3. Si es enfermera, solo sus notificaciones
-        const [data, total] = await this.notificacionesRepository.findAndCount({
-            where: { usuarioId },
-            order: { createdAt: 'DESC' },
-            take: limit,
-            skip: skip,
-        });
+        // Enfermera
+        const queryBuilder = this.notificacionesRepository.createQueryBuilder('n')
+            .where('n.usuarioId = :usuarioId', { usuarioId })
+            .orderBy('n.createdAt', 'DESC')
+            .take(limit)
+            .skip(skip);
 
-        // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
+        if (idsOcultos.length > 0) {
+            queryBuilder.andWhere('n.id NOT IN (:...idsOcultos)', { idsOcultos });
+        }
+
+        const [data, total] = await queryBuilder.getManyAndCount();
+
         const dataConEnfermera = await this.agregarNombreEnfermera(data);
 
         return { data: dataConEnfermera, total };
@@ -122,12 +153,10 @@ export class NotificacionesService {
 
     // ⭐ ==========================================
     // ⭐ MÉTODO AUXILIAR: AGREGAR NOMBRE DE ENFERMERA
-    // ⭐ Hace el JOIN: notificaciones → usuario → personal_enfermeria
     // ⭐ ==========================================
     private async agregarNombreEnfermera(notificaciones: Notificacion[]): Promise<any[]> {
         if (notificaciones.length === 0) return [];
 
-        // 1. Obtener todos los usuarioIds únicos (sin nulls)
         const usuarioIds = [...new Set(
             notificaciones
                 .map(n => n.usuarioId)
@@ -138,19 +167,16 @@ export class NotificacionesService {
             return notificaciones.map(n => ({ ...n, nombreEnfermera: null }));
         }
 
-        // 2. Obtener los usuarios con sus id_personal_enfermeria
         const usuarios = await this.usuarioRepository.find({
             where: { id_usuario: In(usuarioIds) }
         });
 
-        // 3. Obtener los id_personal_enfermeria
         const personalIds = [...new Set(
             usuarios
                 .map(u => u.id_personal_enfermeria)
                 .filter(id => id !== null && id !== undefined)
         )];
 
-        // 4. Obtener los nombres de las enfermeras
         let enfermeras: any[] = [];
         if (personalIds.length > 0) {
             enfermeras = await this.notificacionesRepository.query(
@@ -158,7 +184,6 @@ export class NotificacionesService {
             );
         }
 
-        // 5. Crear mapas para búsqueda rápida
         const usuariosMap = new Map<number, any>();
         usuarios.forEach(u => {
             usuariosMap.set(u.id_usuario, u);
@@ -169,7 +194,6 @@ export class NotificacionesService {
             enfermerasMap.set(e.id, e.nombre_completo);
         });
 
-        // 6. Agregar el nombre de la enfermera a cada notificación
         return notificaciones.map(n => {
             const usuario = n.usuarioId ? usuariosMap.get(n.usuarioId) : null;
             const nombreEnfermera = usuario && usuario.id_personal_enfermeria
@@ -184,15 +208,38 @@ export class NotificacionesService {
     }
 
     async getContador(usuarioId: number): Promise<any> {
-        const total = await this.notificacionesRepository.count({
-            where: { usuarioId }
-        });
-        const noLeidas = await this.notificacionesRepository.count({
-            where: { usuarioId, leida: false }
-        });
-        const urgentes = await this.notificacionesRepository.count({
-            where: { usuarioId, leida: false, prioridad: 'urgente' }
-        });
+        // ⭐ EXCLUIR LAS OCULTAS
+        const idsOcultos = await this.obtenerIdsOcultos(usuarioId);
+
+        const queryBuilder = this.notificacionesRepository.createQueryBuilder('n')
+            .where('n.usuarioId = :usuarioId', { usuarioId });
+
+        if (idsOcultos.length > 0) {
+            queryBuilder.andWhere('n.id NOT IN (:...idsOcultos)', { idsOcultos });
+        }
+
+        const total = await queryBuilder.getCount();
+
+        const noLeidasQuery = this.notificacionesRepository.createQueryBuilder('n')
+            .where('n.usuarioId = :usuarioId', { usuarioId })
+            .andWhere('n.leida = :leida', { leida: false });
+
+        if (idsOcultos.length > 0) {
+            noLeidasQuery.andWhere('n.id NOT IN (:...idsOcultos)', { idsOcultos });
+        }
+
+        const noLeidas = await noLeidasQuery.getCount();
+
+        const urgentesQuery = this.notificacionesRepository.createQueryBuilder('n')
+            .where('n.usuarioId = :usuarioId', { usuarioId })
+            .andWhere('n.leida = :leida', { leida: false })
+            .andWhere('n.prioridad = :prioridad', { prioridad: 'urgente' });
+
+        if (idsOcultos.length > 0) {
+            urgentesQuery.andWhere('n.id NOT IN (:...idsOcultos)', { idsOcultos });
+        }
+
+        const urgentes = await urgentesQuery.getCount();
 
         return { total, noLeidas, urgentes };
     }
@@ -224,8 +271,24 @@ export class NotificacionesService {
         );
     }
 
+    // ⭐ ==========================================
+    // ⭐ MÉTODO ELIMINAR - AHORA OCULTA POR USUARIO
+    // ⭐ ==========================================
     async eliminar(id: number, usuarioId: number): Promise<void> {
-        await this.notificacionesRepository.delete({ id, usuarioId });
+        // ⭐ En lugar de borrar, ocultar para ese usuario
+        const existente = await this.notificacionOcultaRepository.findOne({
+            where: { notificacion_id: id, usuario_id: usuarioId }
+        });
+
+        if (!existente) {
+            await this.notificacionOcultaRepository.save({
+                notificacion_id: id,
+                usuario_id: usuarioId
+            });
+            console.log(`✅ Notificación ${id} oculta para usuario ${usuarioId}`);
+        } else {
+            console.log(`ℹ️ Notificación ${id} ya estaba oculta para usuario ${usuarioId}`);
+        }
     }
 
     // ⭐ ==========================================
@@ -241,7 +304,6 @@ export class NotificacionesService {
             skip: skip,
         });
 
-        // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
         const dataConEnfermera = await this.agregarNombreEnfermera(data);
 
         return { data: dataConEnfermera, total };
@@ -267,7 +329,6 @@ export class NotificacionesService {
             skip: skip,
         });
 
-        // ⭐ AGREGAR EL NOMBRE DE LA ENFERMERA
         const dataConEnfermera = await this.agregarNombreEnfermera(data);
 
         return { data: dataConEnfermera, total };
