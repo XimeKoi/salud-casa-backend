@@ -31,6 +31,8 @@ export class Paciente {
     @Column({ nullable: true })
     nombre: string;
 
+    @Column({ name: 'fecha_visita', nullable: true })
+    fechaVisita: Date;
     @Column({ nullable: true })
     curp: string;
 

@@ -326,6 +326,10 @@ export class PacientesService {
     // ⭐ ACTUALIZAR ESTATUS (CON FECHA FINADO)
     // ⭐ ============================================
 
+    // ⭐ ============================================
+    // ⭐ ACTUALIZAR ESTATUS (CON FECHA VISITA Y FECHA FINADO)
+    // ⭐ ============================================
+
     async updateEstatus(id: number, estatus: string, usuarioId: number = 1): Promise<{ message: string }> {
         if (!id || isNaN(id)) {
             throw new NotFoundException(`ID inválido: ${id}`);
@@ -339,16 +343,24 @@ export class PacientesService {
         const estadoAnterior = paciente.estatus;
         paciente.estatus = estatus;
 
+        // ⭐ SI EL ESTATUS ES FINADO
         if (estatus.toUpperCase() === 'FINADO') {
             paciente.fechaFinado = new Date();
             console.log(`📝 fechaFinado establecida a: ${paciente.fechaFinado} para paciente ${paciente.nombre}`);
         } else {
             paciente.fechaFinado = null;
-            console.log(`📝 fechaFinado eliminada para paciente ${paciente.nombre}`);
+        }
+
+        // ⭐ SI EL ESTATUS ES VISITADO O COMPLETADA → GUARDAR FECHA VISITA
+        const estatusUpper = estatus.toUpperCase();
+        if (estatusUpper === 'VISITADO' || estatusUpper === 'COMPLETADA') {
+            paciente.fechaVisita = new Date();
+            console.log(`📝 fechaVisita establecida a: ${paciente.fechaVisita} para paciente ${paciente.nombre}`);
         }
 
         await this.pacientesRepository.save(paciente);
 
+        // ⭐ ... el resto del código de notificaciones sigue igual
         const nombreCompleto = this.getNombreCompleto(paciente);
         let prioridad = 'media';
         let titulo = '';
