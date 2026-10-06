@@ -35,8 +35,22 @@ export class AuthController {
             // ⭐ ============================================
             // ⭐ SI EL ROL ES DISTRITAL O ADMIN
             // ⭐ DEVOLVER SOLO LAS ENFERMERAS DE SU DISTRITO
+            // ⭐ + DATOS DE LA TABLA personal
             // ⭐ ============================================
             if (usuario.rol === 'distrital' || usuario.rol === 'admin') {
+                // ⭐ OBTENER DATOS DE personal
+                let datosPersonal: any = null;
+                if (usuario.id_personal) {
+                    const result = await this.usuarioRepository.query(
+                        `SELECT id_persona, nombre, "apellidoPaterno", "apellidoMaterno", 
+                                "telefonoPrincipal", "telefonoSecundario", domicilio, curp, rfc 
+                         FROM personal WHERE id_persona = $1`,
+                        [usuario.id_personal]
+                    );
+                    datosPersonal = result[0] || null;
+                }
+
+                // ⭐ OBTENER ENFERMERAS DEL DISTRITO
                 const enfermerasDelDistrito = await this.personalRepository.find({
                     where: { distrito: usuario.distrito }
                 });
@@ -51,8 +65,16 @@ export class AuthController {
                         role: usuario.rol,
                         distrito: usuario.distrito,
                         id_personal_enfermeria: null,
-                        nombre: usuario.usuario,
-                        enfermeras: enfermerasDelDistrito  // ← SOLO LAS DE SU DISTRITO
+                        id_personal: usuario.id_personal,
+                        nombre: datosPersonal?.nombre || usuario.usuario,
+                        apellidoPaterno: datosPersonal?.apellidoPaterno || null,
+                        apellidoMaterno: datosPersonal?.apellidoMaterno || null,
+                        telefonoPrincipal: datosPersonal?.telefonoPrincipal || null,
+                        telefonoSecundario: datosPersonal?.telefonoSecundario || null,
+                        domicilio: datosPersonal?.domicilio || null,
+                        curp: datosPersonal?.curp || null,
+                        rfc: datosPersonal?.rfc || null,
+                        enfermeras: enfermerasDelDistrito
                     }
                 };
             }
@@ -85,6 +107,7 @@ export class AuthController {
                     zona: datosPersonales?.zona || null,
                     zs: datosPersonales?.zs || null,
                     distrito: datosPersonales?.distrito || null,
+                    zona_apoyo: datosPersonales?.zona_apoyo || null,
                     idInterno: datosPersonales?.id_interno || null,
                     telefono: datosPersonales?.telefono || null,
                     curp: datosPersonales?.curp || null,

@@ -43,4 +43,7 @@ export class PersonalEnfermeria {
     // ⭐ AGREGAR ESTO
     @Column({ nullable: true })
     distrito: string;
+
+    @Column({ name: 'zona_apoyo', nullable: true })
+    zona_apoyo: string;
 }

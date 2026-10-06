@@ -15,7 +15,8 @@ export class Usuario {
 
     @Column({ nullable: true, default: 'enfermera' })
     rol: string;
-
+    @Column({ name: 'id_personal', nullable: true })
+    id_personal: number;
     // ✅ SOLO ESTA COLUMNA - elimina id_personal
     @Column({ nullable: true, name: 'id_personal_enfermeria' })
     id_personal_enfermeria: number;
