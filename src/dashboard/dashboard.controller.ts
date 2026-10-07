@@ -1,6 +1,6 @@
 // src/dashboard/dashboard.controller.ts
 
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import {
     ResumenGeneralResponse,
@@ -17,7 +17,7 @@ export class DashboardController {
     constructor(private readonly dashboardService: DashboardService) { }
 
     // ⭐ ============================================
-    // ⭐ ENDPOINTS
+    // ⭐ ENDPOINTS EXISTENTES
     // ⭐ ============================================
 
     @Get('resumen')
@@ -83,6 +83,53 @@ export class DashboardController {
         } catch (error) {
             console.error('Error en getZonasAceptacionRechazo:', error);
             return this.dashboardService.getZonasAceptacionRechazoFallback();
+        }
+    }
+
+    // ⭐ ============================================
+    // ⭐ ⭐ ⭐ NUEVOS ENDPOINTS DE RENDIMIENTO
+    // ⭐ ============================================
+
+    // ⭐ RENDIMIENTO POR DÍA Y ENFERMERA
+    // GET /dashboard/rendimiento-completo
+    // GET /dashboard/rendimiento-completo?fechaInicio=2026-10-01&fechaFin=2026-10-07
+    // GET /dashboard/rendimiento-completo?fechaInicio=2026-10-01&fechaFin=2026-10-07&idEnfermera=1
+    @Get('rendimiento-completo')
+    @HttpCode(HttpStatus.OK)
+    async getRendimientoCompleto(
+        @Query('fechaInicio') fechaInicio?: string,
+        @Query('fechaFin') fechaFin?: string,
+        @Query('idEnfermera') idEnfermera?: string,
+    ) {
+        try {
+            return await this.dashboardService.getRendimientoCompleto(
+                fechaInicio,
+                fechaFin,
+                idEnfermera ? parseInt(idEnfermera) : undefined,
+            );
+        } catch (error) {
+            console.error('Error en getRendimientoCompleto:', error);
+            return { rango: { inicio: fechaInicio, fin: fechaFin }, total_registros: 0, data: [] };
+        }
+    }
+
+    // ⭐ RENDIMIENTO POR ENFERMERA (RANGO COMPLETO)
+    // GET /dashboard/rendimiento-enfermera
+    // GET /dashboard/rendimiento-enfermera?fechaInicio=2026-10-01&fechaFin=2026-10-07
+    @Get('rendimiento-enfermera')
+    @HttpCode(HttpStatus.OK)
+    async getRendimientoPorEnfermera(
+        @Query('fechaInicio') fechaInicio?: string,
+        @Query('fechaFin') fechaFin?: string,
+    ) {
+        try {
+            return await this.dashboardService.getRendimientoPorEnfermera(
+                fechaInicio,
+                fechaFin,
+            );
+        } catch (error) {
+            console.error('Error en getRendimientoPorEnfermera:', error);
+            return { rango: { inicio: fechaInicio, fin: fechaFin }, data: [] };
         }
     }
 }

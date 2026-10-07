@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, DataSource } from 'typeorm';
 import { Paciente } from '../personal/entities/paciente.entity';
 import { Incidencia } from '../personal/entities/incidencia.entity';
 import { Personal } from '../personal/entities/personal.entity';
@@ -28,6 +28,7 @@ export class DashboardService {
         private incidenciaRepository: Repository<Incidencia>,
         @InjectRepository(Personal)
         private personalRepository: Repository<Personal>,
+        private dataSource: DataSource,  // ⭐ NUEVO
     ) { }
 
     // ⭐ ============================================
@@ -287,6 +288,190 @@ export class DashboardService {
         } catch (error) {
             console.error('Error en getZonasAceptacionRechazo:', error);
             return this.getZonasAceptacionRechazoFallback();
+        }
+    }
+
+    // ⭐ ============================================
+    // ⭐ ⭐ ⭐ NUEVO: RENDIMIENTO COMPLETO POR DÍA Y ENFERMERA
+    // ⭐ Combina visitas_programadas (programadas) + pacientes.fecha_visita (realizadas)
+    // ⭐ ============================================
+
+    async getRendimientoCompleto(
+        fechaInicio?: string,
+        fechaFin?: string,
+        idEnfermera?: number
+    ): Promise<any> {
+        try {
+            const hoy = new Date();
+            const hace7 = new Date();
+            hace7.setDate(hoy.getDate() - 6);
+
+            const fin = fechaFin || hoy.toISOString().split('T')[0];
+            const inicio = fechaInicio || hace7.toISOString().split('T')[0];
+
+            const filtroEnfermeraV = idEnfermera ? `AND v.usuario_id = ${idEnfermera}` : '';
+            const filtroEnfermeraP = idEnfermera ? `AND p.id_enfermera = ${idEnfermera}` : '';
+
+            // 1. PROGRAMADAS
+            const programadas = await this.dataSource.query(`
+                SELECT 
+                    v.fecha::text AS dia,
+                    v.usuario_id AS id_enfermera,
+                    u.usuario AS usuario,
+                    pe.nombre_completo AS nombre_enfermera,
+                    COUNT(*) AS programadas
+                FROM visitas_programadas v
+                LEFT JOIN usuario u ON v.usuario_id = u.id_usuario
+                LEFT JOIN personal_enfermeria pe ON u.id_personal_enfermeria = pe.id
+                WHERE v.fecha BETWEEN $1 AND $2
+                ${filtroEnfermeraV}
+                GROUP BY v.fecha, v.usuario_id, u.usuario, pe.nombre_completo
+                ORDER BY v.fecha DESC, programadas DESC
+            `, [inicio, fin]);
+
+            // 2. REALIZADAS
+            const realizadas = await this.dataSource.query(`
+                SELECT 
+                    p.fecha_visita::date::text AS dia,
+                    p.id_enfermera AS id_enfermera,
+                    u.usuario AS usuario,
+                    pe.nombre_completo AS nombre_enfermera,
+                    COUNT(*) AS realizadas
+                FROM pacientes p
+                LEFT JOIN usuario u ON p.id_enfermera = u.id_usuario
+                LEFT JOIN personal_enfermeria pe ON u.id_personal_enfermeria = pe.id
+                WHERE p.fecha_visita IS NOT NULL
+                  AND p.fecha_visita::date BETWEEN $1 AND $2
+                  AND UPPER(p.estatus) IN ('VISITADO', 'COMPLETADA')
+                ${filtroEnfermeraP}
+                GROUP BY p.fecha_visita::date, p.id_enfermera, u.usuario, pe.nombre_completo
+                ORDER BY p.fecha_visita::date DESC, realizadas DESC
+            `, [inicio, fin]);
+
+            // 3. COMBINAR
+            const mapa = new Map<string, any>();
+
+            programadas.forEach((p: any) => {
+                const key = `${p.dia}|${p.id_enfermera || 'null'}`;
+                mapa.set(key, {
+                    dia: p.dia,
+                    id_enfermera: p.id_enfermera,
+                    usuario: p.usuario,
+                    nombre_enfermera: p.nombre_enfermera,
+                    programadas: parseInt(p.programadas) || 0,
+                    realizadas: 0,
+                });
+            });
+
+            realizadas.forEach((r: any) => {
+                const key = `${r.dia}|${r.id_enfermera || 'null'}`;
+                if (mapa.has(key)) {
+                    mapa.get(key).realizadas = parseInt(r.realizadas) || 0;
+                } else {
+                    mapa.set(key, {
+                        dia: r.dia,
+                        id_enfermera: r.id_enfermera,
+                        usuario: r.usuario,
+                        nombre_enfermera: r.nombre_enfermera,
+                        programadas: 0,
+                        realizadas: parseInt(r.realizadas) || 0,
+                    });
+                }
+            });
+
+            // 4. CALCULAR PENDIENTES Y CUMPLIMIENTO
+            const resultado = Array.from(mapa.values()).map((item: any) => {
+                const pendientes = Math.max(0, item.programadas - item.realizadas);
+                const cumplimiento = item.programadas > 0
+                    ? Math.round((item.realizadas / item.programadas) * 100)
+                    : 0;
+
+                return {
+                    ...item,
+                    pendientes,
+                    cumplimiento,
+                };
+            });
+
+            resultado.sort((a, b) => (a.dia < b.dia ? 1 : -1));
+
+            return {
+                rango: { inicio, fin },
+                total_registros: resultado.length,
+                data: resultado,
+            };
+        } catch (error) {
+            console.error('Error en getRendimientoCompleto:', error);
+            return { rango: { inicio: fechaInicio, fin: fechaFin }, total_registros: 0, data: [] };
+        }
+    }
+
+    // ⭐ ============================================
+    // ⭐ ⭐ ⭐ NUEVO: RENDIMIENTO POR ENFERMERA (RANGO COMPLETO)
+    // ⭐ ============================================
+
+    async getRendimientoPorEnfermera(
+        fechaInicio?: string,
+        fechaFin?: string
+    ): Promise<any> {
+        try {
+            const hoy = new Date();
+            const hace30 = new Date();
+            hace30.setDate(hoy.getDate() - 29);
+
+            const fin = fechaFin || hoy.toISOString().split('T')[0];
+            const inicio = fechaInicio || hace30.toISOString().split('T')[0];
+
+            const result = await this.dataSource.query(`
+                SELECT 
+                    u.id_usuario AS id_enfermera,
+                    u.usuario,
+                    pe.nombre_completo,
+                    pe.zona_apoyo,
+                    COALESCE(prog.total, 0) AS programadas,
+                    COALESCE(reali.total, 0) AS realizadas
+                FROM usuario u
+                LEFT JOIN personal_enfermeria pe ON u.id_personal_enfermeria = pe.id
+                LEFT JOIN (
+                    SELECT usuario_id, COUNT(*) AS total
+                    FROM visitas_programadas
+                    WHERE fecha BETWEEN $1 AND $2
+                    GROUP BY usuario_id
+                ) prog ON prog.usuario_id = u.id_usuario
+                LEFT JOIN (
+                    SELECT id_enfermera, COUNT(*) AS total
+                    FROM pacientes
+                    WHERE fecha_visita IS NOT NULL
+                      AND fecha_visita::date BETWEEN $1 AND $2
+                      AND UPPER(estatus) IN ('VISITADO', 'COMPLETADA')
+                    GROUP BY id_enfermera
+                ) reali ON reali.id_enfermera = u.id_usuario
+                WHERE u.rol = 'enfermera'
+                ORDER BY realizadas DESC
+            `, [inicio, fin]);
+
+            return {
+                rango: { inicio, fin },
+                data: result.map((r: any) => {
+                    const programadas = parseInt(r.programadas) || 0;
+                    const realizadas = parseInt(r.realizadas) || 0;
+                    return {
+                        id_enfermera: r.id_enfermera,
+                        usuario: r.usuario,
+                        nombre_completo: r.nombre_completo,
+                        zona_apoyo: r.zona_apoyo,
+                        programadas,
+                        realizadas,
+                        pendientes: Math.max(0, programadas - realizadas),
+                        cumplimiento: programadas > 0
+                            ? Math.round((realizadas / programadas) * 100)
+                            : 0,
+                    };
+                }),
+            };
+        } catch (error) {
+            console.error('Error en getRendimientoPorEnfermera:', error);
+            return { rango: { inicio: fechaInicio, fin: fechaFin }, data: [] };
         }
     }
 
