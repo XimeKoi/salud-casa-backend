@@ -441,10 +441,11 @@ export class PacientesService {
         let calleSinNumero = queryOriginal
             .replace(/\d+/g, '')
             .replace(/#/g, '')
-            .replace(/\./g, '')
+            .replace(/[,.]/g, ' ')
+            .replace(/\b(?:CALLE|C|AVENIDA|AV|BLVD|BOULEVARD|ANDADOR|AND|PRIVADA|PRIV|CTO|CIRCUITO|PROL|COLONIA|COL|FRACCIONAMIENTO|FRACC|BARRIO|RESIDENCIAL|LEON|GUANAJUATO|GTO|MEXICO)\b/gi, ' ')
+            .replace(/\s+/g, ' ')
             .trim()
             .toUpperCase();
-        calleSinNumero = calleSinNumero.replace(/\s+/g, ' ').trim();
 
         console.log(`📍 Calle: "${calleSinNumero}", Número: "${numero}"`);
 
