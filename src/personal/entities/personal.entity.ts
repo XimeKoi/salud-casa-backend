@@ -24,10 +24,6 @@ export class Personal {
     @Column({ nullable: false, type: 'varchar', length: 255 })
     domicilio: string;
 
-    // Elimina esta relación si da error
-    // @OneToOne(() => Usuario, usuario => usuario.personal)
-    // @JoinColumn()
-    // usuario: Usuario;
 
     @Column({ default: true, type: 'boolean' })
     activo: boolean;

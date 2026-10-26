@@ -1,6 +1,6 @@
 // src/calendario/calendario.controller.ts
 
-import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { CalendarioService } from './calendario.service';
 
 @Controller('calendario')
@@ -8,13 +8,19 @@ export class CalendarioController {
     constructor(private readonly calendarioService: CalendarioService) { }
 
     @Get('visitas')
-    findAll() {
-        return this.calendarioService.findAll();
+    findAll(
+        @Query('usuarioId') usuarioId?: string,
+        @Query('enfermeraId') enfermeraId?: string,
+    ) {
+        return this.calendarioService.findAll(
+            usuarioId ? parseInt(usuarioId, 10) : undefined,
+            enfermeraId ? parseInt(enfermeraId, 10) : undefined,
+        );
     }
 
     @Post('visitas')
-    crear(@Body() body: { visitas: any[] }) {
-        return this.calendarioService.crearMultiples(body.visitas);
+    crear(@Body() body: { visitas: any[]; usuarioId?: number }) {
+        return this.calendarioService.crearMultiples(body.visitas, body.usuarioId);
     }
 
     @Patch('visitas/:id')

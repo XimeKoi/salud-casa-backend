@@ -12,10 +12,21 @@ export class CalendarioService {
         private visitaRepository: Repository<VisitaProgramada>,
     ) { }
 
-    async findAll(): Promise<VisitaProgramada[]> {
-        return this.visitaRepository.find({
-            order: { fecha: 'ASC', hora: 'ASC' },
-        });
+    async findAll(usuarioId?: number, enfermeraId?: number): Promise<VisitaProgramada[]> {
+        const qb = this.visitaRepository.createQueryBuilder('v')
+            .leftJoinAndSelect('v.paciente', 'p')
+            .orderBy('v.fecha', 'ASC')
+            .addOrderBy('v.hora', 'ASC');
+
+        if (usuarioId && enfermeraId) {
+            qb.where('(v.usuario_id = :usuarioId OR p.id_enfermera = :enfermeraId)', { usuarioId, enfermeraId });
+        } else if (usuarioId) {
+            qb.where('v.usuario_id = :usuarioId', { usuarioId });
+        } else if (enfermeraId) {
+            qb.where('p.id_enfermera = :enfermeraId', { enfermeraId });
+        }
+
+        return qb.getMany();
     }
 
     async crearMultiples(visitas: any[], usuarioId: number = 1): Promise<any> {
@@ -32,7 +43,7 @@ export class CalendarioService {
                 prioridad: v.prioridad || 'media',
                 notas: v.notas || '',
                 estado: 'pendiente',
-                usuarioId,
+                usuarioId: v.usuarioId || usuarioId || 1,
             }),
         );
 

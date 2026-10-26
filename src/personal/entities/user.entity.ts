@@ -17,7 +17,7 @@ export class Usuario {
     rol: string;
     @Column({ name: 'id_personal', nullable: true })
     id_personal: number;
-    // ✅ SOLO ESTA COLUMNA - elimina id_personal
+    // SE AGREGO PARA LEER EL ID DEL PERSONAL DE ENFERMERIA EN LA TABLA USUARIO
     @Column({ nullable: true, name: 'id_personal_enfermeria' })
     id_personal_enfermeria: number;
 
