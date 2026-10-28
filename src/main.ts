@@ -12,35 +12,11 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   const nodeEnv = process.env.NODE_ENV || 'development';
 
-  // ⭐ CORS - PERMITIR DOMINIOS
+  // ⭐ CORS - PERMITIR DOMINIOS (VERCEL, NETLIFY, LOCAL, PWA Y MÓVILES)
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      // ⭐ DOMINIOS PERMITIDOS
-      const isNetlify = /\.netlify\.app$/.test(origin) ||
-        /\.netlify\.com$/.test(origin) ||
-        origin.includes('netlify.app') ||
-        origin.includes('netlify.com');
-
-      const isLocal = origin.includes('localhost') ||
-        origin.includes('127.0.0.1') ||
-        origin.includes('192.168.');
-
-      // ⭐ AGREGAR DOMINIO DEL SISTEMA DE ELLA
-      const isHerSystem = origin.includes('sistema-de-ella') ||
-        origin.includes('jefes-app') ||
-        origin.includes('tu-companera.com');
-
-      if (isNetlify || isLocal || isHerSystem || nodeEnv === 'development') {
-        callback(null, true);
-      } else {
-        logger.warn(`CORS bloqueado para: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
+      // Permitir siempre: Vercel, Netlify, localhost, PWAs móviles o llamadas directas
+      callback(null, true);
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
@@ -50,8 +26,8 @@ async function bootstrap() {
       'Authorization',
       'Accept',
       'X-Requested-With',
-      'x-api-key',    // ← AGREGAR ESTO
-      'api-key'       // ← AGREGAR ESTO (por si acaso)
+      'x-api-key',
+      'api-key'
     ],
   });
 
