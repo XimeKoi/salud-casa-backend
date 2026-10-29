@@ -4,10 +4,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { PacientesService } from './personal/pacientes.service';
 import { Logger } from '@nestjs/common';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+
+  // ⭐ AUMENTAR LÍMITE DE PAYLOAD PARA SUBIDA DE FOTOS Y EVIDENCIAS EN BASE64 (50MB)
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
 
   const port = process.env.PORT || 3000;
   const nodeEnv = process.env.NODE_ENV || 'development';

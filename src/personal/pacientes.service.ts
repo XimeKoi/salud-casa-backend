@@ -341,7 +341,7 @@ export class PacientesService {
         }
 
         const estadoAnterior = paciente.estatus;
-        paciente.estatus = estatus;
+        paciente.estatus = (estatus || '').toUpperCase();
 
         // ⭐ SI EL ESTATUS ES FINADO
         if (estatus.toUpperCase() === 'FINADO') {

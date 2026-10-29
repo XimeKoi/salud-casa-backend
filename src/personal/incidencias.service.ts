@@ -66,6 +66,12 @@ export class IncidenciasService {
                 });
 
                 if (paciente) {
+                    // ⭐ ACTUALIZAR ESTATUS EN BD DIRECTAMENTE
+                    const nuevoEstatus = createIncidenciaDto.tipo === 'usuario_rechazo' ? 'RECHAZO' : 'INCIDENCIA';
+                    paciente.estatus = nuevoEstatus;
+                    await this.pacientesRepository.save(paciente);
+                    console.log(`✅ [IncidenciasService] Estatus de paciente ${paciente.id} actualizado a ${nuevoEstatus} en BD`);
+
                     const nombreCompleto = this.getNombreCompleto(paciente);
                     let prioridad = 'alta';
                     let titulo = `⚠️ Nueva Incidencia - ${nombreCompleto}`;
