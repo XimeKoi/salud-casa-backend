@@ -105,12 +105,43 @@ export class PacientesController {
         console.log('📥 [POST /pacientes] Recibido:', data);
 
         try {
-            if (!data.nombre || !data.apellidoPaterno) {
+            let nombre = (data.nombre || '').trim();
+            let apellidoPaterno = (data.apellidoPaterno || '').trim();
+            let apellidoMaterno = (data.apellidoMaterno || '').trim();
+
+            if (!nombre && !apellidoPaterno) {
                 return {
                     success: false,
-                    message: 'Nombre y Apellido Paterno son obligatorios'
+                    message: 'Nombre o Apellido es obligatorio'
                 };
             }
+
+            if (!apellidoPaterno && nombre) {
+                const parts = nombre.split(/\s+/).filter(Boolean);
+                if (parts.length >= 3) {
+                    nombre = parts.slice(0, parts.length - 2).join(' ');
+                    apellidoPaterno = parts[parts.length - 2];
+                    if (!apellidoMaterno) apellidoMaterno = parts[parts.length - 1];
+                } else if (parts.length === 2) {
+                    nombre = parts[0];
+                    apellidoPaterno = parts[1];
+                } else {
+                    apellidoPaterno = '.';
+                }
+            } else if (!nombre && apellidoPaterno) {
+                const parts = apellidoPaterno.split(/\s+/).filter(Boolean);
+                if (parts.length >= 2) {
+                    nombre = parts[0];
+                    apellidoPaterno = parts.slice(1).join(' ');
+                } else {
+                    nombre = apellidoPaterno;
+                    apellidoPaterno = '.';
+                }
+            }
+
+            data.nombre = nombre;
+            data.apellidoPaterno = apellidoPaterno;
+            data.apellidoMaterno = apellidoMaterno;
 
             const nuevoPaciente = await this.pacientesService.crearPaciente(data);
 
